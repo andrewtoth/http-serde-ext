@@ -1,0 +1,614 @@
+#![allow(clippy::redundant_closure_call)]
+
+use std::{
+    collections::{BTreeMap, HashMap, LinkedList, VecDeque},
+    fmt::Debug,
+    io,
+};
+
+use http::{
+    uri::Authority, HeaderMap, HeaderName, HeaderValue, Method, Request, Response, StatusCode, Uri,
+    Version,
+};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+
+macro_rules! serde_json_roundtrip {
+    ($ty:ty, $val:expr, $path:expr,$json:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val.clone());
+        let ser = serde_json::to_string(&wrapper).expect("serialize json to string");
+        assert_eq!(ser, $json.to_string());
+
+        let de: Wrapper = serde_json::from_str(&ser).expect("deserialize json string");
+        assert_eq!(de.0, $val);
+
+        let de: Wrapper = serde_json::from_reader(io::Cursor::new(ser.as_bytes()))
+            .expect("deserialize json string from reader");
+        assert_eq!(de.0, $val);
+
+        let ser = serde_json::to_value(wrapper).expect("serialize json to value");
+        assert_eq!(ser, $json);
+
+        let de: Wrapper = serde_json::from_value(ser.clone()).expect("deserialize json value");
+        assert_eq!(de.0, $val);
+    }};
+}
+
+macro_rules! serde_yaml_roundtrip {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr, $yaml:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val);
+        let ser = serde_yaml::to_string(&wrapper).expect("serialize yaml");
+        let mut compare = ser.clone();
+        compare.retain(|c| !c.is_whitespace());
+        let mut yaml = $yaml.to_string();
+        yaml.retain(|c| !c.is_whitespace());
+        assert_eq!(compare, yaml);
+
+        let de: Wrapper = serde_yaml::from_str(&ser).expect("deserialize yaml");
+        $equate(&de.0, &$val);
+
+        let de: Wrapper = serde_yaml::from_reader(io::Cursor::new(ser.as_bytes()))
+            .expect("deserialize yaml from reader");
+        $equate(&de.0, &$val);
+    }};
+}
+
+macro_rules! serde_cbor_roundtrip {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val);
+        let ser = serde_cbor::to_vec(&wrapper).expect("serialize cbor");
+        let de: Wrapper = serde_cbor::from_slice(&ser).expect("deserialize cbor");
+        $equate(&de.0, &$val);
+    }};
+}
+
+macro_rules! bincode_roundtrip {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val);
+        let ser = bincode::serialize(&wrapper).expect("serialize cbor");
+        let de: Wrapper = bincode::deserialize(&ser).expect("deserialize cbor");
+        $equate(&de.0, &$val);
+    }};
+}
+
+macro_rules! postcard_roundtrip {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val);
+        let ser = postcard::to_allocvec(&wrapper).expect("serialize postcard");
+        let de: Wrapper = postcard::from_bytes(&ser).expect("deserialize postcard");
+        $equate(&de.0, &$val);
+    }};
+}
+
+macro_rules! roundtrip {
+    ($ty:ty, $val:expr, $path:expr, $json:expr, $yaml:expr) => {{
+        serde_json_roundtrip!($ty, $val, $path, $json);
+
+        fn equate(a: &$ty, b: &$ty) {
+            assert_eq!(a, b);
+        }
+
+        serde_yaml_roundtrip!($ty, $val, equate, $path, $yaml);
+        serde_cbor_roundtrip!($ty, $val, equate, $path);
+        bincode_roundtrip!($ty, $val, equate, $path);
+        postcard_roundtrip!($ty, $val, equate, $path);
+    }};
+}
+
+macro_rules! test_all {
+        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+            roundtrip!($ty, $val, $path, json!($json), format!("{}\n", $yaml));
+
+            roundtrip!(
+                Option<$ty>,
+                Some($val),
+                $option,
+                json!($json),
+                format!("{}\n", $yaml)
+            );
+            roundtrip!(Option<$ty>, None, $option, json!(null), "null\n");
+            roundtrip!(
+                Vec<$ty>,
+                vec![$val],
+                $vec,
+                json!([$json]),
+                format!("- {}\n", $yaml)
+            );
+            roundtrip!(
+                VecDeque<$ty>,
+                VecDeque::from([$val]),
+                $vec_deque,
+                json!([$json]),
+                format!("- {}\n", $yaml)
+            );
+            roundtrip!(
+                LinkedList<$ty>,
+                LinkedList::from([$val]),
+                $linked_list,
+                json!([$json]),
+                format!("- {}\n", $yaml)
+            );
+            roundtrip!(
+                HashMap<String, $ty>,
+                HashMap::from([("foo".to_string(), $val)]),
+                $hash_map,
+                json!({"foo": $json}),
+                format!("foo: {}\n", $yaml)
+            );
+            roundtrip!(
+                BTreeMap<String, $ty>,
+                BTreeMap::from([("foo".to_string(), $val)]),
+                $btree_map,
+                json!({"foo": $json}),
+                format!("foo: {}\n", $yaml)
+            );
+        }};
+    }
+
+#[test]
+fn test_authority_roundtrip() {
+    test_all!(
+        Authority,
+        Authority::from_static("example.com:8080"),
+        json!("example.com:8080"),
+        "example.com:8080",
+        "http_serde_ext::authority",
+        "http_serde_ext::authority::option",
+        "http_serde_ext::authority::vec",
+        "http_serde_ext::authority::vec_deque",
+        "http_serde_ext::authority::linked_list",
+        "http_serde_ext::authority::hash_map",
+        "http_serde_ext::authority::btree_map"
+    );
+}
+
+#[test]
+fn test_header_map_roundtrip() {
+    test_all!(
+        HeaderMap,
+        HeaderMap::default(),
+        json!({}),
+        "{}",
+        "http_serde_ext::header_map",
+        "http_serde_ext::header_map::option",
+        "http_serde_ext::header_map::vec",
+        "http_serde_ext::header_map::vec_deque",
+        "http_serde_ext::header_map::linked_list",
+        "http_serde_ext::header_map::hash_map",
+        "http_serde_ext::header_map::btree_map"
+    );
+
+    let mut map = HeaderMap::new();
+    map.insert("baz", HeaderValue::from_static("qux"));
+    map.insert("foo", HeaderValue::from_static("bar"));
+    map.append("two", HeaderValue::from_static("one"));
+    map.append("two", HeaderValue::from_static("two"));
+
+    test_all!(
+        HeaderMap,
+        map.clone(),
+        json!({
+            "foo": "bar",
+            "baz": "qux",
+            "two": ["one", "two"]
+        }),
+        "baz: qux\nfoo: bar\ntwo:\n- one\n- two",
+        "http_serde_ext::header_map",
+        "http_serde_ext::header_map::option",
+        "http_serde_ext::header_map::vec",
+        "http_serde_ext::header_map::vec_deque",
+        "http_serde_ext::header_map::linked_list",
+        "http_serde_ext::header_map::hash_map",
+        "http_serde_ext::header_map::btree_map"
+    );
+}
+
+#[test]
+fn test_header_map_generic_roundtrip() {
+    test_all!(
+        HeaderMap<String>,
+        HeaderMap::default(),
+        json!({}),
+        "{}",
+        "http_serde_ext::header_map_generic",
+        "http_serde_ext::header_map_generic::option",
+        "http_serde_ext::header_map_generic::vec",
+        "http_serde_ext::header_map_generic::vec_deque",
+        "http_serde_ext::header_map_generic::linked_list",
+        "http_serde_ext::header_map_generic::hash_map",
+        "http_serde_ext::header_map_generic::btree_map"
+    );
+}
+
+#[test]
+fn test_header_name_roundtrip() {
+    test_all!(
+        HeaderName,
+        HeaderName::from_static("foo"),
+        json!("foo"),
+        "foo",
+        "http_serde_ext::header_name",
+        "http_serde_ext::header_name::option",
+        "http_serde_ext::header_name::vec",
+        "http_serde_ext::header_name::vec_deque",
+        "http_serde_ext::header_name::linked_list",
+        "http_serde_ext::header_name::hash_map",
+        "http_serde_ext::header_name::btree_map"
+    );
+}
+
+#[test]
+fn test_header_value_roundtrip() {
+    test_all!(
+        HeaderValue,
+        HeaderValue::from_static("foo"),
+        json!("foo"),
+        "foo",
+        "http_serde_ext::header_value",
+        "http_serde_ext::header_value::option",
+        "http_serde_ext::header_value::vec",
+        "http_serde_ext::header_value::vec_deque",
+        "http_serde_ext::header_value::linked_list",
+        "http_serde_ext::header_value::hash_map",
+        "http_serde_ext::header_value::btree_map"
+    );
+}
+
+#[test]
+fn test_method_roundtrip() {
+    test_all!(
+        Method,
+        Method::default(),
+        json!("GET"),
+        "GET",
+        "http_serde_ext::method",
+        "http_serde_ext::method::option",
+        "http_serde_ext::method::vec",
+        "http_serde_ext::method::vec_deque",
+        "http_serde_ext::method::linked_list",
+        "http_serde_ext::method::hash_map",
+        "http_serde_ext::method::btree_map"
+    );
+}
+
+macro_rules! serde_json_roundtrip_res_req {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr, $json:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val);
+        let ser = serde_json::to_string(&wrapper).expect("serialize json to string");
+
+        let de: Wrapper = serde_json::from_str(&ser).expect("deserialize json string");
+        $equate(&de.0, &$val);
+
+        let de: Wrapper = serde_json::from_reader(io::Cursor::new(ser.as_bytes()))
+            .expect("deserialize json string from reader");
+        $equate(&de.0, &$val);
+
+        let ser = serde_json::to_value(wrapper).expect("serialize json to value");
+        assert_eq!(ser, $json);
+
+        let de: Wrapper = serde_json::from_value(ser.clone()).expect("deserialize json value");
+        $equate(&de.0, &$val);
+    }};
+}
+
+macro_rules! roundtrip_res_req {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr, $json:expr, $yaml:expr) => {{
+        serde_json_roundtrip_res_req!($ty, $val, $equate, $path, $json);
+        serde_yaml_roundtrip!($ty, $val, $equate, $path, $yaml);
+        serde_cbor_roundtrip!($ty, $val, $equate, $path);
+        bincode_roundtrip!($ty, $val, $equate, $path);
+        postcard_roundtrip!($ty, $val, $equate, $path);
+    }};
+}
+
+macro_rules! test_all_res_req {
+        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $equate:ident, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+            roundtrip_res_req!($ty, $val, |a, b| $equate(a, b), $path, json!($json), format!("{}\n", $yaml));
+
+            roundtrip_res_req!(
+                Option<$ty>,
+                Some($val),
+                |a: &Option<$ty>, b: &Option<$ty>| $equate(a.as_ref().unwrap(), b.as_ref().unwrap()),
+                $option,
+                json!($json), format!("{}\n", $yaml)
+            );
+
+            roundtrip_res_req!(Option<$ty>, None, |a: &Option<$ty>, b: &Option<$ty>| { assert!(a.is_none()); assert!(b.is_none()); }, $option, json!(null), "null\n");
+            roundtrip_res_req!(Vec<$ty>, vec![$val], |a: &Vec<$ty>, b: &Vec<$ty>| $equate(&a[0], &b[0]), $vec, json!([$json]), format!("- {}", $yaml));
+            roundtrip_res_req!(
+                VecDeque<$ty>,
+                VecDeque::from([$val]),
+                |a: &VecDeque<$ty>, b: &VecDeque<$ty>| $equate(&a[0], &b[0]),
+                $vec_deque,
+                json!([$json]), format!("- {}", $yaml)
+            );
+            roundtrip_res_req!(
+                LinkedList<$ty>,
+                LinkedList::from([$val]),
+                |a: &LinkedList<$ty>, b: &LinkedList<$ty>| $equate(a.front().unwrap(), b.front().unwrap()),
+                $linked_list,
+                json!([$json]), format!("- {}", $yaml)
+            );
+            roundtrip_res_req!(
+                HashMap<String, $ty>,
+                HashMap::from([("foo".to_string(), $val)]),
+                |a: &HashMap<String, $ty>, b: &HashMap<String, $ty>| $equate(&a["foo"], &b["foo"]),
+                $hash_map,
+                json!({"foo": $json}), format!("foo:\n  {}", $yaml)
+            );
+            roundtrip_res_req!(
+                BTreeMap<String, $ty>,
+                BTreeMap::from([("foo".to_string(), $val)]),
+                |a: &BTreeMap<String, $ty>, b: &BTreeMap<String, $ty>| $equate(&a["foo"], &b["foo"]),
+                $btree_map,
+                json!({"foo": $json}), format!("foo:\n  {}", $yaml)
+            );
+        }};
+    }
+
+#[test]
+fn test_response_roundtrip() {
+    fn equate<T: Debug + Eq>(a: &Response<T>, b: &Response<T>) {
+        assert_eq!(a.body(), b.body());
+        assert_eq!(a.status(), b.status());
+        assert_eq!(a.headers(), b.headers());
+        assert_eq!(a.version(), b.version());
+        assert!(a.extensions().is_empty());
+        assert!(b.extensions().is_empty());
+    }
+
+    test_all_res_req!(
+        Response<()>,
+        Response::default(),
+        json!({
+            "head": {
+                "status": 200,
+                "headers": {},
+                "version": "HTTP/1.1"
+            },
+            "body": null
+        }),
+        "head:\n  status: 200\n  headers: {}\n  version: HTTP/1.1\nbody: null",
+        equate,
+        "http_serde_ext::response",
+        "http_serde_ext::response::option",
+        "http_serde_ext::response::vec",
+        "http_serde_ext::response::vec_deque",
+        "http_serde_ext::response::linked_list",
+        "http_serde_ext::response::hash_map",
+        "http_serde_ext::response::btree_map"
+    );
+}
+
+#[test]
+fn test_request_roundtrip() {
+    fn equate<T: std::fmt::Debug + Eq>(a: &Request<T>, b: &Request<T>) {
+        assert_eq!(a.body(), b.body());
+        assert_eq!(a.method(), b.method());
+        assert_eq!(a.uri(), b.uri());
+        assert_eq!(a.headers(), b.headers());
+        assert_eq!(a.version(), b.version());
+        assert!(a.extensions().is_empty());
+        assert!(b.extensions().is_empty());
+    }
+
+    test_all_res_req!(
+        Request<()>,
+        Request::default(),
+        json!({
+            "head": {
+                "method": "GET",
+                "uri": "/",
+                "headers": {},
+                "version": "HTTP/1.1"
+            },
+            "body": null
+        }),
+        "head:\n  method: GET\n  uri: /\n  headers: {}\n  version: HTTP/1.1\nbody: null",
+        equate,
+        "http_serde_ext::request",
+        "http_serde_ext::request::option",
+        "http_serde_ext::request::vec",
+        "http_serde_ext::request::vec_deque",
+        "http_serde_ext::request::linked_list",
+        "http_serde_ext::request::hash_map",
+        "http_serde_ext::request::btree_map"
+    );
+}
+
+#[test]
+fn test_status_code_roundtrip() {
+    test_all!(
+        StatusCode,
+        StatusCode::default(),
+        json!(200),
+        "200",
+        "http_serde_ext::status_code",
+        "http_serde_ext::status_code::option",
+        "http_serde_ext::status_code::vec",
+        "http_serde_ext::status_code::vec_deque",
+        "http_serde_ext::status_code::linked_list",
+        "http_serde_ext::status_code::hash_map",
+        "http_serde_ext::status_code::btree_map"
+    );
+
+    test_all!(
+        StatusCode,
+        StatusCode::NOT_MODIFIED,
+        json!(304),
+        "304",
+        "http_serde_ext::status_code",
+        "http_serde_ext::status_code::option",
+        "http_serde_ext::status_code::vec",
+        "http_serde_ext::status_code::vec_deque",
+        "http_serde_ext::status_code::linked_list",
+        "http_serde_ext::status_code::hash_map",
+        "http_serde_ext::status_code::btree_map"
+    );
+}
+
+#[test]
+fn test_uri_roundtrip() {
+    test_all!(
+        Uri,
+        Uri::default(),
+        json!("/"),
+        "/",
+        "http_serde_ext::uri",
+        "http_serde_ext::uri::option",
+        "http_serde_ext::uri::vec",
+        "http_serde_ext::uri::vec_deque",
+        "http_serde_ext::uri::linked_list",
+        "http_serde_ext::uri::hash_map",
+        "http_serde_ext::uri::btree_map"
+    );
+
+    test_all!(
+        Uri,
+        Uri::try_from("https://example.com").unwrap(),
+        json!("https://example.com/"),
+        "https://example.com/",
+        "http_serde_ext::uri",
+        "http_serde_ext::uri::option",
+        "http_serde_ext::uri::vec",
+        "http_serde_ext::uri::vec_deque",
+        "http_serde_ext::uri::linked_list",
+        "http_serde_ext::uri::hash_map",
+        "http_serde_ext::uri::btree_map"
+    );
+}
+
+#[test]
+fn test_version_roundtrip() {
+    test_all!(
+        Version,
+        Version::default(),
+        json!("HTTP/1.1"),
+        "HTTP/1.1",
+        "http_serde_ext::version",
+        "http_serde_ext::version::option",
+        "http_serde_ext::version::vec",
+        "http_serde_ext::version::vec_deque",
+        "http_serde_ext::version::linked_list",
+        "http_serde_ext::version::hash_map",
+        "http_serde_ext::version::btree_map"
+    );
+}
+
+macro_rules! invalid_deserialize {
+    ($ty:ty, $json:expr, $path:expr, $msg:tt) => {{
+        #[derive(Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let res = serde_json::from_value::<Wrapper>($json);
+        assert!(res.is_err());
+        assert_eq!(res.err().unwrap().to_string(), $msg);
+    }};
+}
+
+macro_rules! serde_json_res_req_invalid {
+    ($ty:ty, $path:expr, $msg:expr) => {{
+        let mut val = <$ty>::default();
+        val.extensions_mut().insert(true);
+
+        #[derive(Serialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper(val);
+        let result = serde_json::to_value(&wrapper);
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), $msg);
+    }};
+}
+
+#[test]
+fn test_invalid() {
+    invalid_deserialize!(
+        Authority,
+        json!("\\"),
+        "http_serde_ext::authority",
+        "invalid uri character"
+    );
+
+    let invalid_str = unsafe { std::str::from_utf8_unchecked(&[127]) };
+    invalid_deserialize!(
+        HeaderMap<String>,
+        json!({invalid_str: "hello"}),
+        "http_serde_ext::header_map_generic",
+        "invalid HTTP header name"
+    );
+    invalid_deserialize!(
+        HeaderMap,
+        json!(""),
+        "http_serde_ext::header_map",
+        "invalid type: string \"\", expected a header map"
+    );
+
+    invalid_deserialize!(
+        HeaderName,
+        json!(invalid_str),
+        "http_serde_ext::header_name",
+        "invalid HTTP header name"
+    );
+    invalid_deserialize!(
+        HeaderValue,
+        json!(invalid_str),
+        "http_serde_ext::header_value",
+        "failed to parse header value"
+    );
+
+    invalid_deserialize!(
+        Response<()>,
+        json!({}),
+        "http_serde_ext::response",
+        "missing field `head`"
+    );
+    invalid_deserialize!(
+        Request<()>,
+        json!({"head": {}}),
+        "http_serde_ext::request",
+        "missing field `method`"
+    );
+    serde_json_res_req_invalid!(
+        Response::<()>,
+        "http_serde_ext::response",
+        "extensions is not empty"
+    );
+    serde_json_res_req_invalid!(
+        Request::<()>,
+        "http_serde_ext::request",
+        "extensions is not empty"
+    );
+
+    invalid_deserialize!(
+        StatusCode,
+        json!(1000),
+        "http_serde_ext::status_code",
+        "invalid status code"
+    );
+    invalid_deserialize!(Uri, json!(""), "http_serde_ext::uri", "empty string");
+    invalid_deserialize!(
+        Version,
+        json!("HTTP/0.0"),
+        "http_serde_ext::version",
+        "invalid value: string \"HTTP/0.0\", expected a version string"
+    );
+}
