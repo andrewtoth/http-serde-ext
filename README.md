@@ -2,17 +2,17 @@
 
 Allows serializing and deserializing the following types from [`http`](https://github.com/hyperium/http):
 
-- [`Response`](src/response.rs)
-- [`Request`](src/request.rs)
-- [`HeaderMap`](src/header_map.rs)
-- [`StatusCode`](src/status_code.rs)
-- [`Uri`](src/uri.rs)
-- [`Method`](src/method.rs)
-- [`HeaderName`](src/header_name.rs)
-- [`HeaderValue`](src/header_value.rs)
-- [`uri::Authority`](src/authority.rs)
-- [`Version`](src/version.rs)
-- Generic [`HeaderMap<T>`](src/header_map_generic.rs) where the item is not a `HeaderValue`
+- [`Response`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/response)
+- [`Request`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/request)
+- [`HeaderMap`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/header_map)
+- [`StatusCode`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/status_code)
+- [`Uri`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/uri)
+- [`Method`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/method)
+- [`HeaderName`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/header_name)
+- [`HeaderValue`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/header_value)
+- [`uri::Authority`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/authority)
+- [`Version`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/version)
+- Generic [`HeaderMap<T>`](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext/header_map_generic) where the item is not a `HeaderValue`
 
 Allows serializing and deserializing the above types wrapped in the following `std` container types:
 
@@ -27,7 +27,7 @@ Allows serializing and deserializing the above types wrapped in the following `s
 
 This library is intended to be used with `serde`'s `derive` feature.
 Fields should use the appropriate `#[serde(with = "...")]` annotation for that
-type. Full examples are provided in each module section of these docs.
+type. Full examples are provided in each module section of the [docs](https://docs.rs/http-serde-ext/0.1.0/http_serde_ext).
 
 ```rust
 use std::collections::*;
@@ -59,3 +59,7 @@ struct MyStruct {
     btree_map: BTreeMap<i32, StatusCode>,
 }
 ```
+
+## Acknowledgements
+
+This crate is heavily inspired by [Kornel's](https://github.com/kornelski) [`http-serde`](https://crates.io/crates/http-serde).
