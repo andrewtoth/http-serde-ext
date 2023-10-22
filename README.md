@@ -34,7 +34,7 @@ cargo add http-serde-ext
 Or add the following line to your Cargo.toml:
 
 ```toml
-http-serde-ext = "0.1.1"
+http-serde-ext = "0.1.2"
 ```
 
 # Usage
