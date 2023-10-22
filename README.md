@@ -23,6 +23,20 @@ Allows serializing and deserializing the above types wrapped in the following `s
 - [`HashMap`](https://doc.rust-lang.org/std/collections/hash_map/struct.HashMap.html) in the `Value` position
 - [`BTreeMap`](https://doc.rust-lang.org/std/collections/struct.BTreeMap.html) in the `Value` position
 
+# Installation
+
+Run the following Cargo command in your project directory:
+
+```bash
+cargo add http-serde-ext
+```
+
+Or add the following line to your Cargo.toml:
+
+```toml
+http-serde-ext = "0.1.1"
+```
+
 # Usage
 
 This library is intended to be used with `serde`'s `derive` feature.
