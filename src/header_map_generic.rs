@@ -17,24 +17,24 @@ struct GetAllWrapper<'a, T: Serialize>(GetAll<'a, T>);
 impl<'a, T: Serialize> Serialize for GetAllWrapper<'a, T> {
     fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
         let mut iter = self.0.iter();
-        let Some(first) = iter.next() else {
-            return Err(ser::Error::custom("header has no values"));
-        };
+        if let Some(first) = iter.next() {
+            if iter.next().is_none() {
+                if ser.is_human_readable() {
+                    return first.serialize(ser);
+                } else {
+                    return ser.collect_seq(iter::once(first));
+                }
+            };
 
-        if iter.next().is_none() {
-            if ser.is_human_readable() {
-                return first.serialize(ser);
-            } else {
-                return ser.collect_seq(iter::once(first));
+            let count = iter.count() + 2;
+            let mut seq = ser.serialize_seq(Some(count))?;
+            for v in self.0.iter() {
+                seq.serialize_element(v)?;
             }
-        };
-
-        let count = iter.count() + 2;
-        let mut seq = ser.serialize_seq(Some(count))?;
-        for v in self.0.iter() {
-            seq.serialize_element(v)?;
+            seq.end()
+        } else {
+            Err(ser::Error::custom("header has no values"))
         }
-        seq.end()
     }
 }
 

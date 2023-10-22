@@ -57,10 +57,11 @@ impl Head {
             if k.is_some() {
                 curr = k;
             }
-            let Some(ref name) = curr else {
+            if let Some(ref name) = curr {
+                builder = builder.header(name, v);
+            } else {
                 return Err(de::Error::custom("invalid headers"));
-            };
-            builder = builder.header(name, v);
+            }
         }
 
         builder.body(body).map_err(de::Error::custom)
