@@ -43,17 +43,9 @@ impl Head {
 
         if let Some(headers) = builder.headers_mut() {
             headers.reserve(self.headers.len());
-        }
-        let mut curr = None;
-        for (k, v) in self.headers.into_iter() {
-            if k.is_some() {
-                curr = k;
-            }
-            if let Some(ref name) = curr {
-                builder = builder.header(name, v);
-            } else {
-                return Err(de::Error::custom("invalid headers"));
-            }
+            headers.extend(self.headers);
+        } else {
+            return Err(de::Error::custom("builder doesn't have headers"));
         }
 
         builder.body(body).map_err(de::Error::custom)
