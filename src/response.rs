@@ -1,3 +1,5 @@
+use std::mem;
+
 use http::{response::Builder, HeaderMap, StatusCode, Version};
 use serde::{de, Deserialize, Serialize};
 
@@ -35,15 +37,14 @@ struct Head {
 }
 
 impl Head {
-    fn try_into<T, E>(self, body: T) -> Result<Type<T>, E>
+    fn try_into_with_body<T, E>(mut self, body: T) -> Result<Type<T>, E>
     where
         E: de::Error,
     {
         let mut builder = Builder::new().status(self.status).version(self.version);
 
         if let Some(headers) = builder.headers_mut() {
-            headers.reserve(self.headers.len());
-            headers.extend(self.headers);
+            mem::swap(&mut self.headers, headers);
         } else {
             return Err(de::Error::custom("builder doesn't have headers"));
         }

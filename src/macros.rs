@@ -327,7 +327,7 @@ macro_rules! serde_request_response {
                 let body = seq
                     .next_element()?
                     .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
-                head.try_into(body)
+                head.try_into_with_body(body)
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
@@ -357,7 +357,7 @@ macro_rules! serde_request_response {
                 let body =
                     body.ok_or_else(|| serde::de::Error::missing_field(Field::Body.as_str()))?;
 
-                head.try_into(body)
+                head.try_into_with_body(body)
             }
         }
 
