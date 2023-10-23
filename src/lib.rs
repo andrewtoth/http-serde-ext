@@ -72,45 +72,43 @@ enum Either<T> {
 
 macro_rules! doc_mod {
     ($ty:ty, $path:ident$(, $generic:ident)?$(; $extra:expr)?) => {
-        paste::paste! {
-            #[doc = " [`Serialize`](serde::Serialize)/[`Deserialize`](serde::Deserialize) for [`http::" $($extra)? $ty "`](http::" $($extra)? $ty ")"]
-            ///
-            /// ```
-            /// use std::{cmp::Ord, collections::*, hash::Hash};
-            ///
-            #[doc = " use http::" $($extra)? $ty ";"]
-            /// use serde::{Serialize, Deserialize};
-            ///
-            /// #[derive(Serialize, Deserialize)]
-            #[doc = " struct MyStruct<T"$(", " $generic )?">"]
-            /// where
-            ///     T: Serialize + for<'a> Deserialize<'a> + Hash + Ord,
-            $(#[doc = "     " $generic ": Serialize + for<'a> Deserialize<'a>," ])?
-            /// {
-            #[doc = "    #[serde(with = \"http_serde_ext::" $path "\")]"]
-            #[doc = "    base: " $ty $("<" $generic ">")? ","]
-            ///
-            #[doc = "    #[serde(with = \"http_serde_ext::" $path "::option\")]"]
-            #[doc = "    option: Option<" $ty $("<" $generic ">")? ">,"]
-            ///
-            #[doc = "    #[serde(with = \"http_serde_ext::" $path "::vec\")]"]
-            #[doc = "    vec: Vec<" $ty $("<" $generic ">")? ">,"]
-            ///
-            #[doc = "    #[serde(with = \"http_serde_ext::" $path "::vec_deque\")]"]
-            #[doc = "    vec_deque: VecDeque<" $ty $("<" $generic ">")? ">,"]
-            ///
-            #[doc = "    #[serde(with = \"http_serde_ext::" $path "::linked_list\")]"]
-            #[doc = "    linked_list: LinkedList<" $ty $("<" $generic ">")? ">,"]
-            ///
-            #[doc = "    #[serde(with = \"http_serde_ext::" $path "::hash_map\")]"]
-            #[doc = "    hash_map: HashMap<T, " $ty $("<" $generic ">")? ">,"]
-            ///
-            #[doc = "    #[serde(with = \"http_serde_ext::" $path "::btree_map\")]"]
-            #[doc = "    btree_map: BTreeMap<T, " $ty $("<" $generic ">")? ">,"]
-            /// }
-            /// ```
-            pub mod $path;
-        }
+        #[doc = concat!(" [`Serialize`](serde::Serialize)/[`Deserialize`](serde::Deserialize) for [`http::"$(, stringify!($extra))?, stringify!($ty), "`]")]
+        ///
+        /// ```
+        /// use std::{cmp::Ord, collections::*, hash::Hash};
+        ///
+        #[doc = concat!("use http::", $(stringify!($extra),)? stringify!($ty), ";")]
+        /// use serde::{Serialize, Deserialize};
+        ///
+        /// #[derive(Serialize, Deserialize)]
+        #[doc = concat!("struct MyStruct<T", $(", ", stringify!($generic), )?">")]
+        /// where
+        ///     T: Serialize + for<'a> Deserialize<'a> + Hash + Ord,
+        $(#[doc = concat!("    ", stringify!($generic), ": Serialize + for<'a> Deserialize<'a>,") ])?
+        /// {
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "\")]")]
+        #[doc = concat!("    base: ", stringify!($ty), $("<", stringify!($generic), ">",)? ",")]
+        ///
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::option\")]")]
+        #[doc = concat!("    option: Option<", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]
+        ///
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::vec\")]")]
+        #[doc = concat!("    vec: Vec<", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]
+        ///
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::vec_deque\")]")]
+        #[doc = concat!("    vec_deque: VecDeque<", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]
+        ///
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::linked_list\")]")]
+        #[doc = concat!("    linked_list: LinkedList<", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]
+        ///
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::hash_map\")]")]
+        #[doc = concat!("    hash_map: HashMap<T, ", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]
+        ///
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::btree_map\")]")]
+        #[doc = concat!("    btree_map: BTreeMap<T, ", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]
+        /// }
+        /// ```
+        pub mod $path;
     };
 }
 
