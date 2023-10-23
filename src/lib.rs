@@ -71,7 +71,7 @@ enum Either<T> {
 }
 
 macro_rules! doc_mod {
-    ($ty:ty, $path:ident$(, $generic:tt)?$(; $extra:expr)?) => {
+    ($ty:ty, $path:ident$(, $generic:ident)?$(; $extra:expr)?) => {
         paste::paste! {
             #[doc = " [`Serialize`](serde::Serialize)/[`Deserialize`](serde::Deserialize) for [`http::" $($extra)? $ty "`](http::" $($extra)? $ty ")"]
             ///
