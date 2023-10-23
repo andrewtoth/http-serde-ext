@@ -72,12 +72,12 @@ enum Either<T> {
 
 macro_rules! doc_mod {
     ($ty:ty, $path:ident$(, $generic:ident)?$(; $extra:expr)?) => {
-        #[doc = concat!(" [`Serialize`](serde::Serialize)/[`Deserialize`](serde::Deserialize) for [`http::"$(, stringify!($extra))?, stringify!($ty), "`]")]
+        #[doc = concat!(" [`Serialize`](serde::Serialize)/[`Deserialize`](serde::Deserialize) for [`http::"$(, $extra)?, stringify!($ty), "`]")]
         ///
         /// ```
         /// use std::{cmp::Ord, collections::*, hash::Hash};
         ///
-        #[doc = concat!("use http::", $(stringify!($extra),)? stringify!($ty), ";")]
+        #[doc = concat!("use http::", $($extra,)? stringify!($ty), ";")]
         /// use serde::{Serialize, Deserialize};
         ///
         /// #[derive(Serialize, Deserialize)]
