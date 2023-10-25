@@ -8,7 +8,7 @@ repository = "https://github.com/andrewtoth/http-serde-ext/"
 documentation = "https://docs.rs/http-serde-ext/"
 description = "serde support for http crate types Request, Response, Uri, StatusCode, HeaderMap, Method, in Option or other collections"
 keywords = ["http", "serde", "serialization", "deserialize", "url"]
-categories = ["encoding", "decoding", "networking", "web-programming"]
+categories = ["encoding", "network-programming", "web-programming"]
 readme = "README.md"
 edition = "2021"
 
