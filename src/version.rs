@@ -44,6 +44,6 @@ impl<'de> de::Visitor<'de> for Visitor {
     }
 }
 
-deserialize_from_str!(Visitor, Type);
+deserialize_str!(Visitor, Type);
 
 derive_extension_types!(super::Type);

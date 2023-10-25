@@ -211,7 +211,7 @@ macro_rules! derive_extension_types {
     }
 }
 
-macro_rules! serialize_as_str {
+macro_rules! serialize_str {
     ($ty:ty) => {
         pub fn serialize<S: serde::Serializer>(val: &$ty, ser: S) -> Result<S::Ok, S::Error> {
             ser.serialize_str(&val.as_str())
@@ -237,7 +237,7 @@ macro_rules! create_visitor {
     }
 }
 
-macro_rules! deserialize_from_str {
+macro_rules! deserialize_str {
     ($visitor:ident, $ty:ty) => {
         pub fn deserialize<'de, D>(de: D) -> Result<$ty, D::Error>
         where
@@ -249,7 +249,7 @@ macro_rules! deserialize_from_str {
 }
 
 macro_rules! deserialize_string {
-    ($ty:ty, $visitor:ident) => {
+    ($visitor:ident, $ty:ty) => {
         pub fn deserialize<'de, D>(de: D) -> Result<$ty, D::Error>
         where
             D: serde::Deserializer<'de>,

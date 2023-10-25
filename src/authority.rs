@@ -1,7 +1,7 @@
 type Type = http::uri::Authority;
 const EXPECT_MESSAGE: &str = "valid authority";
 
-serialize_as_str!(Type);
+serialize_str!(Type);
 create_visitor!(
     Visitor,
     Type,
@@ -9,6 +9,6 @@ create_visitor!(
     (visit_str, &str),
     (visit_string, String)
 );
-deserialize_string!(Type, Visitor);
+deserialize_string!(Visitor, Type);
 
 derive_extension_types!(super::Type);
