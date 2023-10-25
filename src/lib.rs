@@ -10,6 +10,8 @@
 //! - [`HeaderName`](header_name)
 //! - [`HeaderValue`](header_value)
 //! - [`uri::Authority`](authority)
+//! - [`uri::Scheme`](scheme)
+//! - [`uri::PathAndQuery`](path_and_query)
 //! - [`Version`](version)
 //! - Generic [`HeaderMap<T>`](header_map_generic) where the item is not a `HeaderValue`
 //!
@@ -118,8 +120,10 @@ doc_mod!(HeaderMap, header_map_generic, U);
 doc_mod!(HeaderName, header_name);
 doc_mod!(HeaderValue, header_value);
 doc_mod!(Method, method);
+doc_mod!(PathAndQuery, path_and_query; "uri::");
 doc_mod!(Request, request, U);
 doc_mod!(Response, response, U);
+doc_mod!(Scheme, scheme; "uri::");
 doc_mod!(StatusCode, status_code);
 doc_mod!(Uri, uri);
 doc_mod!(Version, version);
