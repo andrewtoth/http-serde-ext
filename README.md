@@ -2,17 +2,19 @@
 
 Allows serializing and deserializing the following types from [`http`](https://github.com/hyperium/http):
 
-- [`Response`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/response)
-- [`Request`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/request)
-- [`HeaderMap`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/header_map)
-- [`StatusCode`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/status_code)
-- [`Uri`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/uri)
-- [`Method`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/method)
-- [`HeaderName`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/header_name)
-- [`HeaderValue`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/header_value)
-- [`uri::Authority`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/authority)
-- [`Version`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/version)
-- Generic [`HeaderMap<T>`](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext/header_map_generic) where the item is not a `HeaderValue`
+- [`Response`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/response)
+- [`Request`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/request)
+- [`HeaderMap`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/header_map)
+- [`StatusCode`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/status_code)
+- [`Uri`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/uri)
+- [`Method`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/method)
+- [`HeaderName`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/header_name)
+- [`HeaderValue`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/header_value)
+- [`uri::Authority`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/authority)
+- [`uri::Scheme`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/scheme)
+- [`uri::PathAndQuery`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/path_and_query)
+- [`Version`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/version)
+- Generic [`HeaderMap<T>`](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext/header_map_generic) where the item is not a `HeaderValue`
 
 Allows serializing and deserializing the above types wrapped in the following `std` container types:
 
@@ -34,14 +36,14 @@ cargo add http-serde-ext
 Or add the following line to your Cargo.toml:
 
 ```toml
-http-serde-ext = "0.1.4"
+http-serde-ext = "0.1.5"
 ```
 
 ### Usage
 
 This library is intended to be used with `serde`'s `derive` feature.
 Fields should use the appropriate `#[serde(with = "...")]` annotation for that
-type. Full examples are provided in each module section of the [docs](https://docs.rs/http-serde-ext/0.1.4/http_serde_ext).
+type. Full examples are provided in each module section of the [docs](https://docs.rs/http-serde-ext/0.1.5/http_serde_ext).
 
 ```rust
 use std::collections::*;
