@@ -4,17 +4,19 @@ use std::{
     collections::{BTreeMap, HashMap, LinkedList, VecDeque},
     fmt::Debug,
     io,
+    str::FromStr,
 };
 
+use fake::{Fake, Faker};
 use http::{
-    uri::Authority, HeaderMap, HeaderName, HeaderValue, Method, Request, Response, StatusCode, Uri,
-    Version,
+    uri::{Authority, PathAndQuery, Scheme},
+    HeaderMap, HeaderName, HeaderValue, Method, Request, Response, StatusCode, Uri, Version,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 macro_rules! serde_json_roundtrip {
-    ($ty:ty, $val:expr, $path:expr,$json:expr) => {{
+    ($ty:ty, $val:expr, $path:expr, $json:expr) => {{
         #[derive(Serialize, Deserialize)]
         struct Wrapper(#[serde(with = $path)] $ty);
 
@@ -32,7 +34,28 @@ macro_rules! serde_json_roundtrip {
         let ser = serde_json::to_value(wrapper).expect("serialize json to value");
         assert_eq!(ser, $json);
 
-        let de: Wrapper = serde_json::from_value(ser.clone()).expect("deserialize json value");
+        let de: Wrapper = serde_json::from_value(ser).expect("deserialize json value");
+        assert_eq!(de.0, $val);
+    }};
+}
+
+macro_rules! serde_json_no_intermediate_compare_roundtrip {
+    ($ty:ty, $val:expr, $path:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val.clone());
+        let ser = serde_json::to_string(&wrapper).expect("serialize json to string");
+
+        let de: Wrapper = serde_json::from_str(&ser).expect("deserialize json string");
+        assert_eq!(de.0, $val);
+
+        let de: Wrapper = serde_json::from_reader(io::Cursor::new(ser.as_bytes()))
+            .expect("deserialize json string from reader");
+        assert_eq!(de.0, $val);
+
+        let ser = serde_json::to_value(wrapper).expect("serialize json to value");
+        let de: Wrapper = serde_json::from_value(ser).expect("deserialize json value");
         assert_eq!(de.0, $val);
     }};
 }
@@ -49,6 +72,23 @@ macro_rules! serde_yaml_roundtrip {
         let mut yaml = $yaml.to_string();
         yaml.retain(|c| !c.is_whitespace());
         assert_eq!(compare, yaml);
+
+        let de: Wrapper = serde_yaml::from_str(&ser).expect("deserialize yaml");
+        $equate(&de.0, &$val);
+
+        let de: Wrapper = serde_yaml::from_reader(io::Cursor::new(ser.as_bytes()))
+            .expect("deserialize yaml from reader");
+        $equate(&de.0, &$val);
+    }};
+}
+
+macro_rules! serde_yaml_no_intermediate_compare_roundtrip {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val);
+        let ser = serde_yaml::to_string(&wrapper).expect("serialize yaml");
 
         let de: Wrapper = serde_yaml::from_str(&ser).expect("deserialize yaml");
         $equate(&de.0, &$val);
@@ -110,6 +150,21 @@ macro_rules! roundtrip {
     }};
 }
 
+macro_rules! no_intermediate_compare_roundtrip {
+    ($ty:ty, $val:expr, $path:expr) => {{
+        serde_json_no_intermediate_compare_roundtrip!($ty, $val, $path);
+
+        fn equate(a: &$ty, b: &$ty) {
+            assert_eq!(a, b);
+        }
+
+        serde_yaml_no_intermediate_compare_roundtrip!($ty, $val, equate, $path);
+        serde_cbor_roundtrip!($ty, $val, equate, $path);
+        bincode_roundtrip!($ty, $val, equate, $path);
+        postcard_roundtrip!($ty, $val, equate, $path);
+    }};
+}
+
 macro_rules! test_all {
         ($ty:ty, $val:expr, $json:expr, $yaml:expr, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
             roundtrip!($ty, $val, $path, json!($json), format!("{}\n", $yaml));
@@ -160,6 +215,44 @@ macro_rules! test_all {
         }};
     }
 
+macro_rules! test_all_no_intermediate_compare {
+        ($ty:ty, $val:expr, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+            no_intermediate_compare_roundtrip!($ty, $val, $path);
+
+            no_intermediate_compare_roundtrip!(
+                Option<$ty>,
+                Some($val),
+                $option
+            );
+            no_intermediate_compare_roundtrip!(Option<$ty>, None, $option);
+            no_intermediate_compare_roundtrip!(
+                Vec<$ty>,
+                vec![$val],
+                $vec
+            );
+            no_intermediate_compare_roundtrip!(
+                VecDeque<$ty>,
+                VecDeque::from([$val]),
+                $vec_deque
+            );
+            no_intermediate_compare_roundtrip!(
+                LinkedList<$ty>,
+                LinkedList::from([$val]),
+                $linked_list
+            );
+            no_intermediate_compare_roundtrip!(
+                HashMap<String, $ty>,
+                HashMap::from([("foo".to_string(), $val)]),
+                $hash_map
+            );
+            no_intermediate_compare_roundtrip!(
+                BTreeMap<String, $ty>,
+                BTreeMap::from([("foo".to_string(), $val)]),
+                $btree_map
+            );
+        }};
+    }
+
 #[test]
 fn test_authority_roundtrip() {
     test_all!(
@@ -174,6 +267,79 @@ fn test_authority_roundtrip() {
         "http_serde_ext::authority::linked_list",
         "http_serde_ext::authority::hash_map",
         "http_serde_ext::authority::btree_map"
+    );
+
+    let fake: Authority = Faker.fake();
+    test_all_no_intermediate_compare!(
+        Authority,
+        fake.clone(),
+        "http_serde_ext::authority",
+        "http_serde_ext::authority::option",
+        "http_serde_ext::authority::vec",
+        "http_serde_ext::authority::vec_deque",
+        "http_serde_ext::authority::linked_list",
+        "http_serde_ext::authority::hash_map",
+        "http_serde_ext::authority::btree_map"
+    );
+}
+
+#[test]
+fn test_scheme_roundtrip() {
+    test_all!(
+        Scheme,
+        Scheme::from_str("https").unwrap(),
+        json!("https"),
+        "https",
+        "http_serde_ext::scheme",
+        "http_serde_ext::scheme::option",
+        "http_serde_ext::scheme::vec",
+        "http_serde_ext::scheme::vec_deque",
+        "http_serde_ext::scheme::linked_list",
+        "http_serde_ext::scheme::hash_map",
+        "http_serde_ext::scheme::btree_map"
+    );
+
+    let fake: Scheme = Faker.fake();
+    test_all_no_intermediate_compare!(
+        Scheme,
+        fake.clone(),
+        "http_serde_ext::scheme",
+        "http_serde_ext::scheme::option",
+        "http_serde_ext::scheme::vec",
+        "http_serde_ext::scheme::vec_deque",
+        "http_serde_ext::scheme::linked_list",
+        "http_serde_ext::scheme::hash_map",
+        "http_serde_ext::scheme::btree_map"
+    );
+}
+
+#[test]
+fn test_path_and_query_roundtrip() {
+    test_all!(
+        PathAndQuery,
+        PathAndQuery::from_static("/"),
+        json!("/"),
+        "/",
+        "http_serde_ext::path_and_query",
+        "http_serde_ext::path_and_query::option",
+        "http_serde_ext::path_and_query::vec",
+        "http_serde_ext::path_and_query::vec_deque",
+        "http_serde_ext::path_and_query::linked_list",
+        "http_serde_ext::path_and_query::hash_map",
+        "http_serde_ext::path_and_query::btree_map"
+    );
+
+    let fake: PathAndQuery = Faker.fake();
+    test_all_no_intermediate_compare!(
+        PathAndQuery,
+        fake.clone(),
+        "http_serde_ext::path_and_query",
+        "http_serde_ext::path_and_query::option",
+        "http_serde_ext::path_and_query::vec",
+        "http_serde_ext::path_and_query::vec_deque",
+        "http_serde_ext::path_and_query::linked_list",
+        "http_serde_ext::path_and_query::hash_map",
+        "http_serde_ext::path_and_query::btree_map"
     );
 }
 
@@ -216,6 +382,19 @@ fn test_header_map_roundtrip() {
         "http_serde_ext::header_map::hash_map",
         "http_serde_ext::header_map::btree_map"
     );
+
+    let fake: HeaderMap = Faker.fake();
+    test_all_no_intermediate_compare!(
+        HeaderMap,
+        fake.clone(),
+        "http_serde_ext::header_map",
+        "http_serde_ext::header_map::option",
+        "http_serde_ext::header_map::vec",
+        "http_serde_ext::header_map::vec_deque",
+        "http_serde_ext::header_map::linked_list",
+        "http_serde_ext::header_map::hash_map",
+        "http_serde_ext::header_map::btree_map"
+    );
 }
 
 #[test]
@@ -225,6 +404,19 @@ fn test_header_map_generic_roundtrip() {
         HeaderMap::default(),
         json!({}),
         "{}",
+        "http_serde_ext::header_map_generic",
+        "http_serde_ext::header_map_generic::option",
+        "http_serde_ext::header_map_generic::vec",
+        "http_serde_ext::header_map_generic::vec_deque",
+        "http_serde_ext::header_map_generic::linked_list",
+        "http_serde_ext::header_map_generic::hash_map",
+        "http_serde_ext::header_map_generic::btree_map"
+    );
+
+    let fake: HeaderMap<String> = Faker.fake();
+    test_all_no_intermediate_compare!(
+        HeaderMap<String>,
+        fake.clone(),
         "http_serde_ext::header_map_generic",
         "http_serde_ext::header_map_generic::option",
         "http_serde_ext::header_map_generic::vec",
@@ -250,6 +442,19 @@ fn test_header_name_roundtrip() {
         "http_serde_ext::header_name::hash_map",
         "http_serde_ext::header_name::btree_map"
     );
+
+    let fake: HeaderName = Faker.fake();
+    test_all_no_intermediate_compare!(
+        HeaderName,
+        fake.clone(),
+        "http_serde_ext::header_name",
+        "http_serde_ext::header_name::option",
+        "http_serde_ext::header_name::vec",
+        "http_serde_ext::header_name::vec_deque",
+        "http_serde_ext::header_name::linked_list",
+        "http_serde_ext::header_name::hash_map",
+        "http_serde_ext::header_name::btree_map"
+    );
 }
 
 #[test]
@@ -267,6 +472,19 @@ fn test_header_value_roundtrip() {
         "http_serde_ext::header_value::hash_map",
         "http_serde_ext::header_value::btree_map"
     );
+
+    let fake: HeaderValue = Faker.fake();
+    test_all_no_intermediate_compare!(
+        HeaderValue,
+        fake.clone(),
+        "http_serde_ext::header_value",
+        "http_serde_ext::header_value::option",
+        "http_serde_ext::header_value::vec",
+        "http_serde_ext::header_value::vec_deque",
+        "http_serde_ext::header_value::linked_list",
+        "http_serde_ext::header_value::hash_map",
+        "http_serde_ext::header_value::btree_map"
+    );
 }
 
 #[test]
@@ -276,6 +494,19 @@ fn test_method_roundtrip() {
         Method::default(),
         json!("GET"),
         "GET",
+        "http_serde_ext::method",
+        "http_serde_ext::method::option",
+        "http_serde_ext::method::vec",
+        "http_serde_ext::method::vec_deque",
+        "http_serde_ext::method::linked_list",
+        "http_serde_ext::method::hash_map",
+        "http_serde_ext::method::btree_map"
+    );
+
+    let fake: Method = Faker.fake();
+    test_all_no_intermediate_compare!(
+        Method,
+        fake.clone(),
         "http_serde_ext::method",
         "http_serde_ext::method::option",
         "http_serde_ext::method::vec",
@@ -304,7 +535,28 @@ macro_rules! serde_json_roundtrip_res_req {
         let ser = serde_json::to_value(wrapper).expect("serialize json to value");
         assert_eq!(ser, $json);
 
-        let de: Wrapper = serde_json::from_value(ser.clone()).expect("deserialize json value");
+        let de: Wrapper = serde_json::from_value(ser).expect("deserialize json value");
+        $equate(&de.0, &$val);
+    }};
+}
+
+macro_rules! serde_json_no_intermediate_compare_roundtrip_res_req {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr) => {{
+        #[derive(Serialize, Deserialize)]
+        struct Wrapper(#[serde(with = $path)] $ty);
+
+        let wrapper = Wrapper($val);
+        let ser = serde_json::to_string(&wrapper).expect("serialize json to string");
+
+        let de: Wrapper = serde_json::from_str(&ser).expect("deserialize json string");
+        $equate(&de.0, &$val);
+
+        let de: Wrapper = serde_json::from_reader(io::Cursor::new(ser.as_bytes()))
+            .expect("deserialize json string from reader");
+        $equate(&de.0, &$val);
+
+        let ser = serde_json::to_value(wrapper).expect("serialize json to value");
+        let de: Wrapper = serde_json::from_value(ser).expect("deserialize json value");
         $equate(&de.0, &$val);
     }};
 }
@@ -313,6 +565,16 @@ macro_rules! roundtrip_res_req {
     ($ty:ty, $val:expr, $equate:expr, $path:expr, $json:expr, $yaml:expr) => {{
         serde_json_roundtrip_res_req!($ty, $val, $equate, $path, $json);
         serde_yaml_roundtrip!($ty, $val, $equate, $path, $yaml);
+        serde_cbor_roundtrip!($ty, $val, $equate, $path);
+        bincode_roundtrip!($ty, $val, $equate, $path);
+        postcard_roundtrip!($ty, $val, $equate, $path);
+    }};
+}
+
+macro_rules! no_intermediate_compare_roundtrip_res_req {
+    ($ty:ty, $val:expr, $equate:expr, $path:expr) => {{
+        serde_json_no_intermediate_compare_roundtrip_res_req!($ty, $val, $equate, $path);
+        serde_yaml_no_intermediate_compare_roundtrip!($ty, $val, $equate, $path);
         serde_cbor_roundtrip!($ty, $val, $equate, $path);
         bincode_roundtrip!($ty, $val, $equate, $path);
         postcard_roundtrip!($ty, $val, $equate, $path);
@@ -364,6 +626,46 @@ macro_rules! test_all_res_req {
         }};
     }
 
+macro_rules! test_all_no_intermediate_compare_res_req {
+        ($ty:ty, $val:expr, $equate:ident, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+            no_intermediate_compare_roundtrip_res_req!($ty, $val, |a, b| $equate(a, b), $path);
+
+            no_intermediate_compare_roundtrip_res_req!(
+                Option<$ty>,
+                Some($val),
+                |a: &Option<$ty>, b: &Option<$ty>| $equate(a.as_ref().unwrap(), b.as_ref().unwrap()),
+                $option
+            );
+
+            no_intermediate_compare_roundtrip_res_req!(Option<$ty>, None, |a: &Option<$ty>, b: &Option<$ty>| { assert!(a.is_none()); assert!(b.is_none()); }, $option);
+            no_intermediate_compare_roundtrip_res_req!(Vec<$ty>, vec![$val], |a: &Vec<$ty>, b: &Vec<$ty>| $equate(&a[0], &b[0]), $vec);
+            no_intermediate_compare_roundtrip_res_req!(
+                VecDeque<$ty>,
+                VecDeque::from([$val]),
+                |a: &VecDeque<$ty>, b: &VecDeque<$ty>| $equate(&a[0], &b[0]),
+                $vec_deque
+            );
+            no_intermediate_compare_roundtrip_res_req!(
+                LinkedList<$ty>,
+                LinkedList::from([$val]),
+                |a: &LinkedList<$ty>, b: &LinkedList<$ty>| $equate(a.front().unwrap(), b.front().unwrap()),
+                $linked_list
+            );
+            no_intermediate_compare_roundtrip_res_req!(
+                HashMap<String, $ty>,
+                HashMap::from([("foo".to_string(), $val)]),
+                |a: &HashMap<String, $ty>, b: &HashMap<String, $ty>| $equate(&a["foo"], &b["foo"]),
+                $hash_map
+            );
+            no_intermediate_compare_roundtrip_res_req!(
+                BTreeMap<String, $ty>,
+                BTreeMap::from([("foo".to_string(), $val)]),
+                |a: &BTreeMap<String, $ty>, b: &BTreeMap<String, $ty>| $equate(&a["foo"], &b["foo"]),
+                $btree_map
+            );
+        }};
+    }
+
 #[test]
 fn test_response_roundtrip() {
     fn equate<T: Debug + Eq>(a: &Response<T>, b: &Response<T>) {
@@ -387,6 +689,30 @@ fn test_response_roundtrip() {
             "body": null
         }),
         "head:\n  status: 200\n  headers: {}\n  version: HTTP/1.1\nbody: null",
+        equate,
+        "http_serde_ext::response",
+        "http_serde_ext::response::option",
+        "http_serde_ext::response::vec",
+        "http_serde_ext::response::vec_deque",
+        "http_serde_ext::response::linked_list",
+        "http_serde_ext::response::hash_map",
+        "http_serde_ext::response::btree_map"
+    );
+
+    let response: Response<String> = Faker.fake();
+    let status = response.status();
+    let headers = response.headers().clone();
+    let version = response.version();
+    let body = response.body();
+
+    let response = || {
+        let mut builder = Response::builder().status(status).version(version);
+        std::mem::swap(builder.headers_mut().unwrap(), &mut headers.clone());
+        builder.body(body.clone()).unwrap()
+    };
+    test_all_no_intermediate_compare_res_req!(
+        Response<String>,
+        response(),
         equate,
         "http_serde_ext::response",
         "http_serde_ext::response::option",
@@ -432,6 +758,32 @@ fn test_request_roundtrip() {
         "http_serde_ext::request::hash_map",
         "http_serde_ext::request::btree_map"
     );
+
+    let request: Request<String> = Faker.fake();
+    let method = request.method();
+    let uri = request.uri();
+    let headers = request.headers().clone();
+    let version = request.version();
+    let body = request.body();
+
+    let request = || {
+        let mut builder = Request::builder().method(method).uri(uri).version(version);
+        std::mem::swap(builder.headers_mut().unwrap(), &mut headers.clone());
+        builder.body(body.clone()).unwrap()
+    };
+
+    test_all_no_intermediate_compare_res_req!(
+        Request<String>,
+        request(),
+        equate,
+        "http_serde_ext::request",
+        "http_serde_ext::request::option",
+        "http_serde_ext::request::vec",
+        "http_serde_ext::request::vec_deque",
+        "http_serde_ext::request::linked_list",
+        "http_serde_ext::request::hash_map",
+        "http_serde_ext::request::btree_map"
+    );
 }
 
 #[test]
@@ -455,6 +807,19 @@ fn test_status_code_roundtrip() {
         StatusCode::NOT_MODIFIED,
         json!(304),
         "304",
+        "http_serde_ext::status_code",
+        "http_serde_ext::status_code::option",
+        "http_serde_ext::status_code::vec",
+        "http_serde_ext::status_code::vec_deque",
+        "http_serde_ext::status_code::linked_list",
+        "http_serde_ext::status_code::hash_map",
+        "http_serde_ext::status_code::btree_map"
+    );
+
+    let fake: StatusCode = Faker.fake();
+    test_all_no_intermediate_compare!(
+        StatusCode,
+        fake,
         "http_serde_ext::status_code",
         "http_serde_ext::status_code::option",
         "http_serde_ext::status_code::vec",
@@ -494,6 +859,19 @@ fn test_uri_roundtrip() {
         "http_serde_ext::uri::hash_map",
         "http_serde_ext::uri::btree_map"
     );
+
+    let fake: Uri = Faker.fake();
+    test_all_no_intermediate_compare!(
+        Uri,
+        fake.clone(),
+        "http_serde_ext::uri",
+        "http_serde_ext::uri::option",
+        "http_serde_ext::uri::vec",
+        "http_serde_ext::uri::vec_deque",
+        "http_serde_ext::uri::linked_list",
+        "http_serde_ext::uri::hash_map",
+        "http_serde_ext::uri::btree_map"
+    );
 }
 
 #[test]
@@ -503,6 +881,19 @@ fn test_version_roundtrip() {
         Version::default(),
         json!("HTTP/1.1"),
         "HTTP/1.1",
+        "http_serde_ext::version",
+        "http_serde_ext::version::option",
+        "http_serde_ext::version::vec",
+        "http_serde_ext::version::vec_deque",
+        "http_serde_ext::version::linked_list",
+        "http_serde_ext::version::hash_map",
+        "http_serde_ext::version::btree_map"
+    );
+
+    let fake: Version = Faker.fake();
+    test_all_no_intermediate_compare!(
+        Version,
+        fake,
         "http_serde_ext::version",
         "http_serde_ext::version::option",
         "http_serde_ext::version::vec",
