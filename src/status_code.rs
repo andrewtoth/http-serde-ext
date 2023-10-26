@@ -15,7 +15,7 @@ impl<'de> de::Visitor<'de> for Visitor {
     type Value = Type;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "{EXPECT_MESSAGE}")
+        formatter.write_str(EXPECT_MESSAGE)
     }
 
     fn visit_i32<E: de::Error>(self, val: i32) -> Result<Self::Value, E> {
