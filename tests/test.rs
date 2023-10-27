@@ -254,6 +254,38 @@ macro_rules! test_all_no_intermediate_compare {
     }
 
 #[test]
+fn test_flattened_option() {
+    #[derive(Deserialize, Serialize)]
+    struct MyStruct {
+        #[serde(flatten)]
+        field: MyEnum,
+    }
+
+    #[derive(Deserialize, Serialize)]
+    struct A {
+        #[serde(with = "http_serde_ext::header_map::option")]
+        field: Option<HeaderMap>,
+    }
+
+    #[derive(Deserialize, Serialize)]
+    struct B;
+
+    #[derive(Deserialize, Serialize)]
+    #[serde(untagged)]
+    enum MyEnum {
+        A(A),
+        B(B),
+    }
+
+    let json = json!({
+        "field": null
+    });
+
+    let de: MyStruct = serde_json::from_value(json).unwrap();
+    assert!(matches!(de.field, MyEnum::A(A { field: None })));
+}
+
+#[test]
 fn test_authority_roundtrip() {
     test_all!(
         Authority,

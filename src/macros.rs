@@ -38,6 +38,13 @@ macro_rules! serde_option {
                 {
                     Ok(None)
                 }
+
+                fn visit_unit<E>(self) -> Result<Self::Value, E>
+                where
+                    E: serde::de::Error,
+                {
+                    Ok(None)
+                }
             }
 
             pub fn deserialize<'de, D$(, $generic)?>(de: D) -> Result<Option<$ty>, D::Error>
