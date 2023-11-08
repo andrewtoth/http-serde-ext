@@ -192,7 +192,7 @@ macro_rules! serde_seq {
             #[derive(serde::Serialize)]
             struct TempSer<'a$(, $generic: serde::Serialize)?>(#[serde(with = "super")] &'a $ty);
 
-
+            #[allow(clippy::mutable_key_type)]
             pub fn serialize<$($generic: serde::Serialize, )?S: serde::Serializer>(
                 val: &$seq,
                 ser: S,
@@ -220,7 +220,7 @@ macro_rules! serde_seq {
                 where
                     V: serde::de::SeqAccess<'de>,
                 {
-                    #[allow(clippy::redundant_closure_call)]
+                    #[allow(clippy::redundant_closure_call, clippy::mutable_key_type)]
                     let mut ret = $create(seq.size_hint().unwrap_or_default());
                     while let Some(val) = seq.next_element::<TempDe$(<$generic>)?>()? {
                         ret.$insert(val.0);

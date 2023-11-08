@@ -1,8 +1,8 @@
 //! ## [`serde`] extensions for the [`http`] crate types
 //!
 //! Allows serializing and deserializing the following types from [`http`]:
-//! - [`Response`](response)
 //! - [`Request`](request)
+//! - [`Response`](response)
 //! - [`HeaderMap`](header_map)
 //! - [`StatusCode`](status_code)
 //! - [`Uri`](uri)
@@ -23,6 +23,8 @@
 //! - [`LinkedList`](std::collections::LinkedList)
 //! - [`HashMap`](std::collections::HashMap) in the `Value` position
 //! - [`BTreeMap`](std::collections::BTreeMap) in the `Value` position
+//! - [`HashSet`](std::collections::HashSet) for all except `HeaderMap`, `Request`, and `Response`
+//! - [`BTreeSet`](std::collections::BTreeSet) only for `HeaderValue`, `StatusCode`, and `Version`
 //!
 //! ## Usage
 //!
