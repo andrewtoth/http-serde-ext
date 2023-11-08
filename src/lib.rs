@@ -17,6 +17,7 @@
 //!
 //! Allows serializing and deserializing the above types wrapped in the following `std` container types:
 //! - [`Option`]
+//! - [`Result`] in the `Ok` position
 //! - [`Vec`]
 //! - [`VecDeque`](std::collections::VecDeque)
 //! - [`LinkedList`](std::collections::LinkedList)
@@ -93,6 +94,9 @@ macro_rules! doc_mod {
         ///
         #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::option\")]")]
         #[doc = concat!("    option: Option<", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]
+        ///
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::result\")]")]
+        #[doc = concat!("    result: Result<", stringify!($ty), $("<", stringify!($generic), ">",)? ", T>,")]
         ///
         #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::vec\")]")]
         #[doc = concat!("    vec: Vec<", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]

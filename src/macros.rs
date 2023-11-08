@@ -60,6 +60,129 @@ macro_rules! serde_option {
     };
 }
 
+macro_rules! serde_result {
+    ($ty:ty$(, $generic:ident)?) => {
+        pub mod result {
+            const NAME: &str = "Result";
+            const VARIANTS: &[&str] = &["Ok", "Err"];
+
+            #[derive(serde::Deserialize)]
+            struct TempDe$(<$generic: for<'a> serde::Deserialize<'a>>)?(#[serde(with = "super")] $ty);
+
+            #[derive(serde::Serialize)]
+            struct TempSer<'a$(, $generic: serde::Serialize)?>(#[serde(with = "super")] &'a $ty);
+
+            pub fn serialize<$($generic: serde::Serialize, )?S: serde::Serializer, E: serde::Serialize>(
+                val: &Result<$ty, E>,
+                ser: S,
+            ) -> Result<S::Ok, S::Error> {
+                match *val {
+                    Ok(ref value) => ser.serialize_newtype_variant(NAME, 0, VARIANTS[0], &TempSer(value)),
+                    Err(ref err) => ser.serialize_newtype_variant(NAME, 1, VARIANTS[1], err),
+                }
+            }
+
+            enum Field {
+                Ok,
+                Err,
+            }
+
+            impl<'de> serde::Deserialize<'de> for Field {
+                #[inline]
+                fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+                where
+                    D: serde::Deserializer<'de>,
+                {
+                    struct FieldVisitor;
+
+                    impl<'de> serde::de::Visitor<'de> for FieldVisitor {
+                        type Value = Field;
+
+                        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                            formatter.write_str("`Ok` or `Err`")
+                        }
+
+                        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+                        where
+                            E: serde::de::Error,
+                        {
+                            match value {
+                                0 => Ok(Field::Ok),
+                                1 => Ok(Field::Err),
+                                _ => Err(serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(value), &self)),
+                            }
+                        }
+
+                        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+                        where
+                            E: serde::de::Error,
+                        {
+                            match value {
+                                "Ok" => Ok(Field::Ok),
+                                "Err" => Ok(Field::Err),
+                                _ => Err(serde::de::Error::unknown_variant(value, VARIANTS)),
+                            }
+                        }
+
+                        fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
+                        where
+                            E: serde::de::Error,
+                        {
+                            match value {
+                                b"Ok" => Ok(Field::Ok),
+                                b"Err" => Ok(Field::Err),
+                                _ => match std::str::from_utf8(value) {
+                                    Ok(value) => Err(serde::de::Error::unknown_variant(value, VARIANTS)),
+                                    Err(_) => {
+                                        Err(serde::de::Error::invalid_value(serde::de::Unexpected::Bytes(value), &self))
+                                    }
+                                },
+                            }
+                        }
+                    }
+
+                    deserializer.deserialize_identifier(FieldVisitor)
+                }
+            }
+
+            struct Visitor<$($generic: for<'a> serde::Deserialize<'a>, )?E: for<'a> serde::Deserialize<'a>> {
+                phe: std::marker::PhantomData<E>,
+                $(ph: std::marker::PhantomData<$generic>,)?
+            }
+
+            impl<'de$(, $generic: for<'a> serde::Deserialize<'a>)?, E: for<'a> serde::Deserialize<'a>> serde::de::Visitor<'de> for Visitor<$($generic, )?E> {
+                type Value = Result<$ty, E>;
+
+                fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    formatter.write_str("result")
+                }
+
+                fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+                where
+                    A: serde::de::EnumAccess<'de>,
+                {
+                    match data.variant()? {
+                        (Field::Ok, v) => serde::de::VariantAccess::newtype_variant(v).map(|v: TempDe$(<$generic>)?| Ok(v.0)),
+                        (Field::Err, v) => serde::de::VariantAccess::newtype_variant(v).map(Err),
+                    }
+                }
+            }
+
+            pub fn deserialize<'de, D, E$(, $generic)?>(de: D) -> Result<Result<$ty, E>, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+                E: for<'a> serde::Deserialize<'a>,
+                $($generic: for<'a> serde::Deserialize<'a>,)?
+            {
+                de.deserialize_enum(NAME, &VARIANTS, Visitor::<$($generic, )?E> {
+                    phe: std::marker::PhantomData::<E>,
+                    $(ph: std::marker::PhantomData::<$generic>,)?
+                })
+            }
+        }
+    };
+}
+
 macro_rules! serde_seq {
     ($seq:ty, $ty:ty, $create:expr, $insert:ident, $name:ident$(, $generic:ident)?) => {
         pub mod $name {
@@ -184,6 +307,7 @@ macro_rules! serde_map {
 macro_rules! derive_extension_types {
     ($ty:ty$(, $generic:ident)?) => {
         serde_option!($ty$(, $generic)?);
+        serde_result!($ty$(, $generic)?);
         serde_seq!(Vec<$ty>, $ty, Vec::with_capacity, push, vec$(, $generic)?);
         serde_seq!(
             std::collections::VecDeque<$ty>,

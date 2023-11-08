@@ -166,7 +166,7 @@ macro_rules! no_intermediate_compare_roundtrip {
 }
 
 macro_rules! test_all {
-        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $path:expr, $option:expr, $result:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
             roundtrip!($ty, $val, $path, json!($json), format!("{}\n", $yaml));
 
             roundtrip!(
@@ -177,6 +177,14 @@ macro_rules! test_all {
                 format!("{}\n", $yaml)
             );
             roundtrip!(Option<$ty>, None, $option, json!(null), "null\n");
+            roundtrip!(
+                Result<$ty, String>,
+                Ok($val),
+                $result,
+                json!({"Ok": $json}),
+                format!("!Ok{}\n", $yaml)
+            );
+            roundtrip!(Result<$ty, String>, Err(String::default()), $result, json!({"Err": ""}), "!Err''\n");
             roundtrip!(
                 Vec<$ty>,
                 vec![$val],
@@ -216,7 +224,7 @@ macro_rules! test_all {
     }
 
 macro_rules! test_all_no_intermediate_compare {
-        ($ty:ty, $val:expr, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+        ($ty:ty, $val:expr, $path:expr, $option:expr, $result:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
             no_intermediate_compare_roundtrip!($ty, $val, $path);
 
             no_intermediate_compare_roundtrip!(
@@ -225,6 +233,12 @@ macro_rules! test_all_no_intermediate_compare {
                 $option
             );
             no_intermediate_compare_roundtrip!(Option<$ty>, None, $option);
+            no_intermediate_compare_roundtrip!(
+                Result<$ty, String>,
+                Ok($val),
+                $result
+            );
+            no_intermediate_compare_roundtrip!(Result<$ty, String>, Err(String::default()), $result);
             no_intermediate_compare_roundtrip!(
                 Vec<$ty>,
                 vec![$val],
@@ -294,6 +308,7 @@ fn test_authority_roundtrip() {
         "example.com:8080",
         "http_serde_ext::authority",
         "http_serde_ext::authority::option",
+        "http_serde_ext::authority::result",
         "http_serde_ext::authority::vec",
         "http_serde_ext::authority::vec_deque",
         "http_serde_ext::authority::linked_list",
@@ -307,6 +322,7 @@ fn test_authority_roundtrip() {
         fake.clone(),
         "http_serde_ext::authority",
         "http_serde_ext::authority::option",
+        "http_serde_ext::authority::result",
         "http_serde_ext::authority::vec",
         "http_serde_ext::authority::vec_deque",
         "http_serde_ext::authority::linked_list",
@@ -324,6 +340,7 @@ fn test_scheme_roundtrip() {
         "https",
         "http_serde_ext::scheme",
         "http_serde_ext::scheme::option",
+        "http_serde_ext::scheme::result",
         "http_serde_ext::scheme::vec",
         "http_serde_ext::scheme::vec_deque",
         "http_serde_ext::scheme::linked_list",
@@ -337,6 +354,7 @@ fn test_scheme_roundtrip() {
         fake.clone(),
         "http_serde_ext::scheme",
         "http_serde_ext::scheme::option",
+        "http_serde_ext::scheme::result",
         "http_serde_ext::scheme::vec",
         "http_serde_ext::scheme::vec_deque",
         "http_serde_ext::scheme::linked_list",
@@ -354,6 +372,7 @@ fn test_path_and_query_roundtrip() {
         "/",
         "http_serde_ext::path_and_query",
         "http_serde_ext::path_and_query::option",
+        "http_serde_ext::path_and_query::result",
         "http_serde_ext::path_and_query::vec",
         "http_serde_ext::path_and_query::vec_deque",
         "http_serde_ext::path_and_query::linked_list",
@@ -367,6 +386,7 @@ fn test_path_and_query_roundtrip() {
         fake.clone(),
         "http_serde_ext::path_and_query",
         "http_serde_ext::path_and_query::option",
+        "http_serde_ext::path_and_query::result",
         "http_serde_ext::path_and_query::vec",
         "http_serde_ext::path_and_query::vec_deque",
         "http_serde_ext::path_and_query::linked_list",
@@ -384,6 +404,7 @@ fn test_header_map_roundtrip() {
         "{}",
         "http_serde_ext::header_map",
         "http_serde_ext::header_map::option",
+        "http_serde_ext::header_map::result",
         "http_serde_ext::header_map::vec",
         "http_serde_ext::header_map::vec_deque",
         "http_serde_ext::header_map::linked_list",
@@ -408,6 +429,7 @@ fn test_header_map_roundtrip() {
         "baz: qux\nfoo: bar\ntwo:\n- one\n- two",
         "http_serde_ext::header_map",
         "http_serde_ext::header_map::option",
+        "http_serde_ext::header_map::result",
         "http_serde_ext::header_map::vec",
         "http_serde_ext::header_map::vec_deque",
         "http_serde_ext::header_map::linked_list",
@@ -421,6 +443,7 @@ fn test_header_map_roundtrip() {
         fake.clone(),
         "http_serde_ext::header_map",
         "http_serde_ext::header_map::option",
+        "http_serde_ext::header_map::result",
         "http_serde_ext::header_map::vec",
         "http_serde_ext::header_map::vec_deque",
         "http_serde_ext::header_map::linked_list",
@@ -438,6 +461,7 @@ fn test_header_map_generic_roundtrip() {
         "{}",
         "http_serde_ext::header_map_generic",
         "http_serde_ext::header_map_generic::option",
+        "http_serde_ext::header_map_generic::result",
         "http_serde_ext::header_map_generic::vec",
         "http_serde_ext::header_map_generic::vec_deque",
         "http_serde_ext::header_map_generic::linked_list",
@@ -451,6 +475,7 @@ fn test_header_map_generic_roundtrip() {
         fake.clone(),
         "http_serde_ext::header_map_generic",
         "http_serde_ext::header_map_generic::option",
+        "http_serde_ext::header_map_generic::result",
         "http_serde_ext::header_map_generic::vec",
         "http_serde_ext::header_map_generic::vec_deque",
         "http_serde_ext::header_map_generic::linked_list",
@@ -468,6 +493,7 @@ fn test_header_name_roundtrip() {
         "foo",
         "http_serde_ext::header_name",
         "http_serde_ext::header_name::option",
+        "http_serde_ext::header_name::result",
         "http_serde_ext::header_name::vec",
         "http_serde_ext::header_name::vec_deque",
         "http_serde_ext::header_name::linked_list",
@@ -481,6 +507,7 @@ fn test_header_name_roundtrip() {
         fake.clone(),
         "http_serde_ext::header_name",
         "http_serde_ext::header_name::option",
+        "http_serde_ext::header_name::result",
         "http_serde_ext::header_name::vec",
         "http_serde_ext::header_name::vec_deque",
         "http_serde_ext::header_name::linked_list",
@@ -498,6 +525,7 @@ fn test_header_value_roundtrip() {
         "foo",
         "http_serde_ext::header_value",
         "http_serde_ext::header_value::option",
+        "http_serde_ext::header_value::result",
         "http_serde_ext::header_value::vec",
         "http_serde_ext::header_value::vec_deque",
         "http_serde_ext::header_value::linked_list",
@@ -511,6 +539,7 @@ fn test_header_value_roundtrip() {
         fake.clone(),
         "http_serde_ext::header_value",
         "http_serde_ext::header_value::option",
+        "http_serde_ext::header_value::result",
         "http_serde_ext::header_value::vec",
         "http_serde_ext::header_value::vec_deque",
         "http_serde_ext::header_value::linked_list",
@@ -528,6 +557,7 @@ fn test_method_roundtrip() {
         "GET",
         "http_serde_ext::method",
         "http_serde_ext::method::option",
+        "http_serde_ext::method::result",
         "http_serde_ext::method::vec",
         "http_serde_ext::method::vec_deque",
         "http_serde_ext::method::linked_list",
@@ -541,6 +571,7 @@ fn test_method_roundtrip() {
         fake.clone(),
         "http_serde_ext::method",
         "http_serde_ext::method::option",
+        "http_serde_ext::method::result",
         "http_serde_ext::method::vec",
         "http_serde_ext::method::vec_deque",
         "http_serde_ext::method::linked_list",
@@ -614,7 +645,7 @@ macro_rules! no_intermediate_compare_roundtrip_res_req {
 }
 
 macro_rules! test_all_res_req {
-        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $equate:ident, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $equate:ident, $path:expr, $option:expr, $result:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
             roundtrip_res_req!($ty, $val, |a, b| $equate(a, b), $path, json!($json), format!("{}\n", $yaml));
 
             roundtrip_res_req!(
@@ -626,6 +657,23 @@ macro_rules! test_all_res_req {
             );
 
             roundtrip_res_req!(Option<$ty>, None, |a: &Option<$ty>, b: &Option<$ty>| { assert!(a.is_none()); assert!(b.is_none()); }, $option, json!(null), "null\n");
+
+            roundtrip_res_req!(
+                Result<$ty, String>,
+                Ok($val),
+                |a: &Result<$ty, String>, b: &Result<$ty, String>| $equate(a.as_ref().unwrap(), b.as_ref().unwrap()),
+                $result,
+                json!({"Ok": $json}), format!("!Ok{}\n", $yaml)
+            );
+
+            roundtrip_res_req!(
+                Result<$ty, String>,
+                Err(String::default()),
+                |a: &Result<$ty, String>, b: &Result<$ty, String>| { a.as_ref().err().unwrap() == b.as_ref().err().unwrap() },
+                $result,
+                json!({"Err": ""}), "!Err''\n"
+            );
+
             roundtrip_res_req!(Vec<$ty>, vec![$val], |a: &Vec<$ty>, b: &Vec<$ty>| $equate(&a[0], &b[0]), $vec, json!([$json]), format!("- {}", $yaml));
             roundtrip_res_req!(
                 VecDeque<$ty>,
@@ -659,7 +707,7 @@ macro_rules! test_all_res_req {
     }
 
 macro_rules! test_all_no_intermediate_compare_res_req {
-        ($ty:ty, $val:expr, $equate:ident, $path:expr, $option:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+        ($ty:ty, $val:expr, $equate:ident, $path:expr, $option:expr, $result:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
             no_intermediate_compare_roundtrip_res_req!($ty, $val, |a, b| $equate(a, b), $path);
 
             no_intermediate_compare_roundtrip_res_req!(
@@ -670,6 +718,22 @@ macro_rules! test_all_no_intermediate_compare_res_req {
             );
 
             no_intermediate_compare_roundtrip_res_req!(Option<$ty>, None, |a: &Option<$ty>, b: &Option<$ty>| { assert!(a.is_none()); assert!(b.is_none()); }, $option);
+
+            no_intermediate_compare_roundtrip_res_req!(
+                Result<$ty, String>,
+                Ok($val),
+                |a: &Result<$ty, String>, b: &Result<$ty, String>| $equate(a.as_ref().unwrap(), b.as_ref().unwrap()),
+                $result
+            );
+
+            no_intermediate_compare_roundtrip_res_req!(
+                Result<$ty, String>,
+                Err(String::default()),
+                |a: &Result<$ty, String>, b: &Result<$ty, String>|  { a.as_ref().err().unwrap() == b.as_ref().err().unwrap() },
+                $result
+            );
+
+
             no_intermediate_compare_roundtrip_res_req!(Vec<$ty>, vec![$val], |a: &Vec<$ty>, b: &Vec<$ty>| $equate(&a[0], &b[0]), $vec);
             no_intermediate_compare_roundtrip_res_req!(
                 VecDeque<$ty>,
@@ -724,6 +788,7 @@ fn test_response_roundtrip() {
         equate,
         "http_serde_ext::response",
         "http_serde_ext::response::option",
+        "http_serde_ext::response::result",
         "http_serde_ext::response::vec",
         "http_serde_ext::response::vec_deque",
         "http_serde_ext::response::linked_list",
@@ -748,6 +813,7 @@ fn test_response_roundtrip() {
         equate,
         "http_serde_ext::response",
         "http_serde_ext::response::option",
+        "http_serde_ext::response::result",
         "http_serde_ext::response::vec",
         "http_serde_ext::response::vec_deque",
         "http_serde_ext::response::linked_list",
@@ -784,6 +850,7 @@ fn test_request_roundtrip() {
         equate,
         "http_serde_ext::request",
         "http_serde_ext::request::option",
+        "http_serde_ext::request::result",
         "http_serde_ext::request::vec",
         "http_serde_ext::request::vec_deque",
         "http_serde_ext::request::linked_list",
@@ -810,6 +877,7 @@ fn test_request_roundtrip() {
         equate,
         "http_serde_ext::request",
         "http_serde_ext::request::option",
+        "http_serde_ext::request::result",
         "http_serde_ext::request::vec",
         "http_serde_ext::request::vec_deque",
         "http_serde_ext::request::linked_list",
@@ -827,6 +895,7 @@ fn test_status_code_roundtrip() {
         "200",
         "http_serde_ext::status_code",
         "http_serde_ext::status_code::option",
+        "http_serde_ext::status_code::result",
         "http_serde_ext::status_code::vec",
         "http_serde_ext::status_code::vec_deque",
         "http_serde_ext::status_code::linked_list",
@@ -841,6 +910,7 @@ fn test_status_code_roundtrip() {
         "304",
         "http_serde_ext::status_code",
         "http_serde_ext::status_code::option",
+        "http_serde_ext::status_code::result",
         "http_serde_ext::status_code::vec",
         "http_serde_ext::status_code::vec_deque",
         "http_serde_ext::status_code::linked_list",
@@ -854,6 +924,7 @@ fn test_status_code_roundtrip() {
         fake,
         "http_serde_ext::status_code",
         "http_serde_ext::status_code::option",
+        "http_serde_ext::status_code::result",
         "http_serde_ext::status_code::vec",
         "http_serde_ext::status_code::vec_deque",
         "http_serde_ext::status_code::linked_list",
@@ -871,6 +942,7 @@ fn test_uri_roundtrip() {
         "/",
         "http_serde_ext::uri",
         "http_serde_ext::uri::option",
+        "http_serde_ext::uri::result",
         "http_serde_ext::uri::vec",
         "http_serde_ext::uri::vec_deque",
         "http_serde_ext::uri::linked_list",
@@ -885,6 +957,7 @@ fn test_uri_roundtrip() {
         "https://example.com/",
         "http_serde_ext::uri",
         "http_serde_ext::uri::option",
+        "http_serde_ext::uri::result",
         "http_serde_ext::uri::vec",
         "http_serde_ext::uri::vec_deque",
         "http_serde_ext::uri::linked_list",
@@ -898,6 +971,7 @@ fn test_uri_roundtrip() {
         fake.clone(),
         "http_serde_ext::uri",
         "http_serde_ext::uri::option",
+        "http_serde_ext::uri::result",
         "http_serde_ext::uri::vec",
         "http_serde_ext::uri::vec_deque",
         "http_serde_ext::uri::linked_list",
@@ -915,6 +989,7 @@ fn test_version_roundtrip() {
         "HTTP/1.1",
         "http_serde_ext::version",
         "http_serde_ext::version::option",
+        "http_serde_ext::version::result",
         "http_serde_ext::version::vec",
         "http_serde_ext::version::vec_deque",
         "http_serde_ext::version::linked_list",
@@ -928,6 +1003,7 @@ fn test_version_roundtrip() {
         fake,
         "http_serde_ext::version",
         "http_serde_ext::version::option",
+        "http_serde_ext::version::result",
         "http_serde_ext::version::vec",
         "http_serde_ext::version::vec_deque",
         "http_serde_ext::version::linked_list",
