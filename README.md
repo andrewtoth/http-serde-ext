@@ -19,7 +19,7 @@ Allows serializing and deserializing the following types from [`http`](https://g
 Allows serializing and deserializing the above types wrapped in the following `std` container types:
 
 - [`Option`](https://doc.rust-lang.org/std/option/enum.Option.html)
-- [`Result`] in the `Ok` position
+- [`Result`](https://doc.rust-lang.org/std/result/enum.Result.html) in the `Ok` position
 - [`Vec`](https://doc.rust-lang.org/std/vec/struct.Vec.html)
 - [`VecDeque`](https://doc.rust-lang.org/std/collections/struct.VecDeque.html)
 - [`LinkedList`](https://doc.rust-lang.org/std/collections/struct.LinkedList.html)
