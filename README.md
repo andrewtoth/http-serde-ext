@@ -23,10 +23,10 @@ Allows serializing and deserializing the above types wrapped in the following `s
 - [`Vec`](https://doc.rust-lang.org/std/vec/struct.Vec.html)
 - [`VecDeque`](https://doc.rust-lang.org/std/collections/struct.VecDeque.html)
 - [`LinkedList`](https://doc.rust-lang.org/std/collections/struct.LinkedList.html)
-- [`HashMap`](std::collections::HashMap) as the `Key` for all except `HeaderMap`, `Request`, and `Response`. As the `Value` for all types.
-- [`BTreeMap`](std::collections::BTreeMap) as the `Key` only for `HeaderValue`, `StatusCode`, and `Version`. As the `Value` for all types.
-- [`HashSet`](std::collections::HashSet) for all except `HeaderMap`, `Request`, and `Response`
-- [`BTreeSet`](std::collections::BTreeSet) only for `HeaderValue`, `StatusCode`, and `Version`
+- [`HashMap`](https://doc.rust-lang.org/std/collections/hash_map/struct.HashMap.html) as the `Key` for all except `HeaderMap`, `Request`, and `Response`. As the `Value` for all types.
+- [`BTreeMap`](https://doc.rust-lang.org/std/collections/struct.BTreeMap.html) as the `Key` only for `HeaderValue`, `StatusCode`, and `Version`. As the `Value` for all types.
+- [`HashSet`](https://doc.rust-lang.org/std/collections/struct.HashSet.html) for all except `HeaderMap`, `Request`, and `Response`
+- [`BTreeSet`](https://doc.rust-lang.org/std/collections/struct.BTreeSet.html) only for `HeaderValue`, `StatusCode`, and `Version`
 
 ### Installation
 
