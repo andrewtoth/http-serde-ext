@@ -305,7 +305,7 @@ macro_rules! serde_map {
 }
 
 macro_rules! serde_map_key {
-    ($map:ty, $($bounds:path,)+, $val:ident, $ty:ty, $create:expr, $insert:ident, $name:ident$(, $generic:ident)?) => {
+    ($map:ty, $val:ident, $ty:ty, $create:expr, $insert:ident, $name:ident$(, $generic:ident)?) => {
         pub mod $name {
 
             #[derive(serde::Deserialize)]
@@ -332,7 +332,7 @@ macro_rules! serde_map_key {
                 $(ph: std::marker::PhantomData<$generic>,)?
             }
 
-            impl<'de$(, $generic: for<'a> serde::Deserialize<'a>)?, $val: for<'a> serde::Deserialize<'a>$( + $bounds)+> serde::de::Visitor<'de> for Visitor<$val, $($generic)?> {
+            impl<'de$(, $generic: for<'a> serde::Deserialize<'a>)?, $val: for<'a> serde::Deserialize<'a>> serde::de::Visitor<'de> for Visitor<$val, $($generic)?> {
                 type Value = $map;
 
                 fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -353,7 +353,7 @@ macro_rules! serde_map_key {
                 }
             }
 
-            pub fn deserialize<'de, D$(, $generic)?, $val: for<'a> serde::Deserialize<'a>$( + $bounds)+>(de: D) -> Result<$map, D::Error>
+            pub fn deserialize<'de, D$(, $generic)?, $val: for<'a> serde::Deserialize<'a>>(de: D) -> Result<$map, D::Error>
             where
                 D: serde::Deserializer<'de>,
                 $($generic: for<'a> serde::Deserialize<'a>,)?
@@ -419,7 +419,6 @@ macro_rules! derive_hash_types {
 
         serde_map_key!(
             std::collections::HashMap<$ty, V>,
-            std::cmp::Eq, std::hash::Hash,,
             V,
             $ty,
             std::collections::HashMap::with_capacity,
@@ -440,7 +439,6 @@ macro_rules! derive_ord_types {
         );
         serde_map_key!(
             std::collections::BTreeMap<$ty, V>,
-            std::cmp::Ord,,
             V,
             $ty,
             |_| std::collections::BTreeMap::new(),
