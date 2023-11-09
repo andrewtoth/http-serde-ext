@@ -64,6 +64,23 @@
 //!    hash_set: HashSet<uri::Authority>,
 //! }
 //! ```
+//!
+//! This library can also be used to manually `De`/`Serialize` types if given a
+//! `De`/`Serializer`. For example, when using `serde_json`:
+//!
+//! ```rust
+//! let uri = http::Uri::default();
+//! let serialized = http_serde_ext::uri::serialize(&uri, serde_json::value::Serializer).unwrap();
+//! let deserialized = http_serde_ext::uri::deserialize(serialized).unwrap();
+//! assert_eq!(uri, deserialized);
+//!
+//! let responses: Vec<http::Response<()>> = vec![http::Response::default()];
+//! let serialized =
+//!     http_serde_ext::response::vec::serialize(&responses, serde_json::value::Serializer)
+//!         .unwrap();
+//! let deserialized: Vec<http::Response<()>> =
+//!     http_serde_ext::response::vec::deserialize(serialized).unwrap();
+//! ```
 
 #[macro_use]
 mod macros;

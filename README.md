@@ -19,11 +19,14 @@ Allows serializing and deserializing the following types from [`http`](https://g
 Allows serializing and deserializing the above types wrapped in the following `std` container types:
 
 - [`Option`](https://doc.rust-lang.org/std/option/enum.Option.html)
+- [`Result`] in the `Ok` position
 - [`Vec`](https://doc.rust-lang.org/std/vec/struct.Vec.html)
 - [`VecDeque`](https://doc.rust-lang.org/std/collections/struct.VecDeque.html)
 - [`LinkedList`](https://doc.rust-lang.org/std/collections/struct.LinkedList.html)
-- [`HashMap`](https://doc.rust-lang.org/std/collections/hash_map/struct.HashMap.html) in the `Value` position
-- [`BTreeMap`](https://doc.rust-lang.org/std/collections/struct.BTreeMap.html) in the `Value` position
+- [`HashMap`](std::collections::HashMap) as the `Key` for all except `HeaderMap`, `Request`, and `Response`. As the `Value` for all types.
+- [`BTreeMap`](std::collections::BTreeMap) as the `Key` only for `HeaderValue`, `StatusCode`, and `Version`. As the `Value` for all types.
+- [`HashSet`](std::collections::HashSet) for all except `HeaderMap`, `Request`, and `Response`
+- [`BTreeSet`](std::collections::BTreeSet) only for `HeaderValue`, `StatusCode`, and `Version`
 
 ### Installation
 
@@ -71,9 +74,29 @@ struct MyStruct {
     #[serde(with = "http_serde_ext::header_map_generic::hash_map")]
     hash_map: HashMap<String, HeaderMap<String>>,
 
-    #[serde(with = "http_serde_ext::status_code::btree_map")]
-    btree_map: BTreeMap<i32, StatusCode>,
+    #[serde(with = "http_serde_ext::status_code::btree_map_key")]
+    btree_map: BTreeMap<StatusCode, i32>,
+
+    #[serde(with = "http_serde_ext::authority::hash_set")]
+    hash_set: HashSet<uri::Authority>,
 }
+```
+
+This library can also be used to manually `De`/`Serialize` types if given a
+`De`/`Serializer`. For example, when using `serde_json`:
+
+```rust
+let uri = http::Uri::default();
+let serialized = http_serde_ext::uri::serialize(&uri, serde_json::value::Serializer).unwrap();
+let deserialized = http_serde_ext::uri::deserialize(serialized).unwrap();
+assert_eq!(uri, deserialized);
+
+let responses: Vec<http::Response<()>> = vec![http::Response::default()];
+let serialized =
+    http_serde_ext::response::vec::serialize(&responses, serde_json::value::Serializer)
+        .unwrap();
+let deserialized: Vec<http::Response<()>> =
+    http_serde_ext::response::vec::deserialize(serialized).unwrap();
 ```
 
 ### Acknowledgements
