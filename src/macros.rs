@@ -243,7 +243,7 @@ macro_rules! serde_seq {
 }
 
 macro_rules! serde_map {
-    ($map:ty, $key:ident, $ty:ty, $create:expr, $insert:ident, $name:ident$(, $generic:ident)?) => {
+    ($map:ty, $($bounds:path,)+, $key:ident, $ty:ty, $create:expr, $insert:ident, $name:ident$(, $generic:ident)?) => {
         pub mod $name {
 
             #[derive(serde::Deserialize)]
@@ -269,7 +269,7 @@ macro_rules! serde_map {
                 $(ph: std::marker::PhantomData<$generic>,)?
             }
 
-            impl<'de$(, $generic: for<'a> serde::Deserialize<'a>)?, $key: for<'a> serde::Deserialize<'a> + std::cmp::Ord + std::cmp::Eq + std::cmp::PartialEq + std::hash::Hash> serde::de::Visitor<'de> for Visitor<$key, $($generic)?> {
+            impl<'de$(, $generic: for<'a> serde::Deserialize<'a>)?, $key: for<'a> serde::Deserialize<'a>$( + $bounds)+> serde::de::Visitor<'de> for Visitor<$key, $($generic)?> {
                 type Value = $map;
 
                 fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -290,7 +290,7 @@ macro_rules! serde_map {
                 }
             }
 
-            pub fn deserialize<'de, D$(, $generic)?, $key: for<'a> serde::Deserialize<'a> + std::cmp::Ord + std::cmp::Eq + std::cmp::PartialEq + std::hash::Hash>(de: D) -> Result<$map, D::Error>
+            pub fn deserialize<'de, D$(, $generic)?, $key: for<'a> serde::Deserialize<'a>$( + $bounds)+>(de: D) -> Result<$map, D::Error>
             where
                 D: serde::Deserializer<'de>,
                 $($generic: for<'a> serde::Deserialize<'a>,)?
@@ -325,6 +325,7 @@ macro_rules! derive_extension_types {
         );
         serde_map!(
             std::collections::HashMap<K, $ty>,
+            std::cmp::Eq, std::hash::Hash,,
             K,
             $ty,
             std::collections::HashMap::with_capacity,
@@ -333,6 +334,7 @@ macro_rules! derive_extension_types {
         );
         serde_map!(
             std::collections::BTreeMap<K, $ty>,
+            std::cmp::Ord,,
             K,
             $ty,
             |_| std::collections::BTreeMap::new(),
