@@ -1,7 +1,7 @@
-#![allow(clippy::redundant_closure_call)]
+#![allow(clippy::redundant_closure_call, clippy::mutable_key_type)]
 
 use std::{
-    collections::{BTreeMap, HashMap, LinkedList, VecDeque},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet, LinkedList, VecDeque},
     fmt::Debug,
     io,
     str::FromStr,
@@ -166,106 +166,173 @@ macro_rules! no_intermediate_compare_roundtrip {
 }
 
 macro_rules! test_all {
-        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $path:expr, $option:expr, $result:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
-            roundtrip!($ty, $val, $path, json!($json), format!("{}\n", $yaml));
+    ($ty:ty, $val:expr, $json:expr, $yaml:expr, $path:literal, $option:literal, $result:literal, $vec:literal, $vec_deque:literal, $linked_list:literal, $hash_map:literal, $btree_map:literal) => {{
+        roundtrip!($ty, $val, $path, json!($json), format!("{}\n", $yaml));
 
-            roundtrip!(
-                Option<$ty>,
-                Some($val),
-                $option,
-                json!($json),
-                format!("{}\n", $yaml)
-            );
-            roundtrip!(Option<$ty>, None, $option, json!(null), "null\n");
-            roundtrip!(
-                Result<$ty, String>,
-                Ok($val),
-                $result,
-                json!({"Ok": $json}),
-                format!("!Ok{}\n", $yaml)
-            );
-            roundtrip!(Result<$ty, String>, Err(String::default()), $result, json!({"Err": ""}), "!Err''\n");
-            roundtrip!(
-                Vec<$ty>,
-                vec![$val],
-                $vec,
-                json!([$json]),
-                format!("- {}\n", $yaml)
-            );
-            roundtrip!(
-                VecDeque<$ty>,
-                VecDeque::from([$val]),
-                $vec_deque,
-                json!([$json]),
-                format!("- {}\n", $yaml)
-            );
-            roundtrip!(
-                LinkedList<$ty>,
-                LinkedList::from([$val]),
-                $linked_list,
-                json!([$json]),
-                format!("- {}\n", $yaml)
-            );
-            roundtrip!(
-                HashMap<String, $ty>,
-                HashMap::from([("foo".to_string(), $val)]),
-                $hash_map,
-                json!({"foo": $json}),
-                format!("foo: {}\n", $yaml)
-            );
-            roundtrip!(
-                BTreeMap<String, $ty>,
-                BTreeMap::from([("foo".to_string(), $val)]),
-                $btree_map,
-                json!({"foo": $json}),
-                format!("foo: {}\n", $yaml)
-            );
-        }};
-    }
+        roundtrip!(
+            Option<$ty>,
+            Some($val),
+            $option,
+            json!($json),
+            format!("{}\n", $yaml)
+        );
+        roundtrip!(Option<$ty>, None, $option, json!(null), "null\n");
+        roundtrip!(
+            Result<$ty, String>,
+            Ok($val),
+            $result,
+            json!({"Ok": $json}),
+            format!("!Ok{}\n", $yaml)
+        );
+        roundtrip!(Result<$ty, String>, Err(String::default()), $result, json!({"Err": ""}), "!Err''\n");
+        roundtrip!(
+            Vec<$ty>,
+            vec![$val],
+            $vec,
+            json!([$json]),
+            format!("- {}\n", $yaml)
+        );
+        roundtrip!(
+            VecDeque<$ty>,
+            VecDeque::from([$val]),
+            $vec_deque,
+            json!([$json]),
+            format!("- {}\n", $yaml)
+        );
+        roundtrip!(
+            LinkedList<$ty>,
+            LinkedList::from([$val]),
+            $linked_list,
+            json!([$json]),
+            format!("- {}\n", $yaml)
+        );
+        roundtrip!(
+            HashMap<String, $ty>,
+            HashMap::from([("foo".to_string(), $val)]),
+            $hash_map,
+            json!({"foo": $json}),
+            format!("foo: {}\n", $yaml)
+        );
+        roundtrip!(
+            BTreeMap<String, $ty>,
+            BTreeMap::from([("foo".to_string(), $val)]),
+            $btree_map,
+            json!({"foo": $json}),
+            format!("foo: {}\n", $yaml)
+        );
+    }};
+}
 
 macro_rules! test_all_no_intermediate_compare {
-        ($ty:ty, $val:expr, $path:expr, $option:expr, $result:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
-            no_intermediate_compare_roundtrip!($ty, $val, $path);
+    ($ty:ty, $val:expr, $path:literal, $option:literal, $result:literal, $vec:literal, $vec_deque:literal, $linked_list:literal, $hash_map:literal, $btree_map:literal) => {{
+        no_intermediate_compare_roundtrip!($ty, $val, $path);
 
-            no_intermediate_compare_roundtrip!(
-                Option<$ty>,
-                Some($val),
-                $option
-            );
-            no_intermediate_compare_roundtrip!(Option<$ty>, None, $option);
-            no_intermediate_compare_roundtrip!(
-                Result<$ty, String>,
-                Ok($val),
-                $result
-            );
-            no_intermediate_compare_roundtrip!(Result<$ty, String>, Err(String::default()), $result);
-            no_intermediate_compare_roundtrip!(
-                Vec<$ty>,
-                vec![$val],
-                $vec
-            );
-            no_intermediate_compare_roundtrip!(
-                VecDeque<$ty>,
-                VecDeque::from([$val]),
-                $vec_deque
-            );
-            no_intermediate_compare_roundtrip!(
-                LinkedList<$ty>,
-                LinkedList::from([$val]),
-                $linked_list
-            );
-            no_intermediate_compare_roundtrip!(
-                HashMap<String, $ty>,
-                HashMap::from([("foo".to_string(), $val)]),
-                $hash_map
-            );
-            no_intermediate_compare_roundtrip!(
-                BTreeMap<String, $ty>,
-                BTreeMap::from([("foo".to_string(), $val)]),
-                $btree_map
-            );
-        }};
-    }
+        no_intermediate_compare_roundtrip!(
+            Option<$ty>,
+            Some($val),
+            $option
+        );
+        no_intermediate_compare_roundtrip!(Option<$ty>, None, $option);
+        no_intermediate_compare_roundtrip!(
+            Result<$ty, String>,
+            Ok($val),
+            $result
+        );
+        no_intermediate_compare_roundtrip!(Result<$ty, String>, Err(String::default()), $result);
+        no_intermediate_compare_roundtrip!(
+            Vec<$ty>,
+            vec![$val],
+            $vec
+        );
+        no_intermediate_compare_roundtrip!(
+            VecDeque<$ty>,
+            VecDeque::from([$val]),
+            $vec_deque
+        );
+        no_intermediate_compare_roundtrip!(
+            LinkedList<$ty>,
+            LinkedList::from([$val]),
+            $linked_list
+        );
+        no_intermediate_compare_roundtrip!(
+            HashMap<String, $ty>,
+            HashMap::from([("foo".to_string(), $val)]),
+            $hash_map
+        );
+        no_intermediate_compare_roundtrip!(
+            BTreeMap<String, $ty>,
+            BTreeMap::from([("foo".to_string(), $val)]),
+            $btree_map
+        );
+    }};
+}
+
+macro_rules! test_hash {
+    ($ty:ty, $val:expr, $json:expr, $yaml:expr, $hash_map_key:literal, $hash_set:literal) => {{
+        roundtrip!(
+            HashMap<$ty, String>,
+            HashMap::from([($val, String::default())]),
+            $hash_map_key,
+            json!({$json.as_str().unwrap(): ""}),
+            format!("{}: ''\n", $yaml));
+        roundtrip!(
+            HashSet<$ty>,
+            HashSet::from([$val]),
+            $hash_set,
+            json!([$json]),
+            format!("- {}\n", $yaml)
+        );
+    }};
+}
+
+macro_rules! test_hash_no_intermediate_compare {
+    ($ty:ty, $val:expr, $hash_map_key:literal, $hash_set:literal) => {{
+        no_intermediate_compare_roundtrip!(
+            HashMap<$ty, String>,
+            HashMap::from([($val, String::default())]),
+            $hash_map_key
+        );
+        no_intermediate_compare_roundtrip!(
+            HashSet<$ty>,
+            HashSet::from([$val]),
+            $hash_set
+        );
+    }};
+}
+
+macro_rules! test_ord {
+    ($ty:ty, $val:expr, $json:expr, $yaml:expr, $btree_map_key:literal, $btree_set:literal) => {{
+        roundtrip!(
+            BTreeMap<$ty, String>,
+            BTreeMap::from([($val, String::default())]),
+            $btree_map_key,
+            json!({$json.as_str().unwrap(): ""}),
+            format!("{}: ''\n", $yaml)
+        );
+        roundtrip!(
+            BTreeSet<$ty>,
+            BTreeSet::from([$val]),
+            $btree_set,
+            json!([$json]),
+            format!("- {}\n", $yaml)
+        );
+    }};
+}
+
+macro_rules! test_ord_no_intermediate_compare {
+    ($ty:ty, $val:expr, $btree_map_key:literal, $btree_set:literal) => {{
+        no_intermediate_compare_roundtrip!(
+            BTreeMap<$ty, String>,
+            BTreeMap::from([($val, String::default())]),
+            $btree_map_key
+        );
+        no_intermediate_compare_roundtrip!(
+            BTreeSet<$ty>,
+            BTreeSet::from([$val]),
+            $btree_set
+        );
+    }};
+}
 
 #[test]
 fn test_flattened_option() {
@@ -316,6 +383,15 @@ fn test_authority_roundtrip() {
         "http_serde_ext::authority::btree_map"
     );
 
+    test_hash!(
+        Authority,
+        Authority::from_static("example.com:8080"),
+        json!("example.com:8080"),
+        "example.com:8080",
+        "http_serde_ext::authority::hash_map_key",
+        "http_serde_ext::authority::hash_set"
+    );
+
     let fake: Authority = Faker.fake();
     test_all_no_intermediate_compare!(
         Authority,
@@ -328,6 +404,13 @@ fn test_authority_roundtrip() {
         "http_serde_ext::authority::linked_list",
         "http_serde_ext::authority::hash_map",
         "http_serde_ext::authority::btree_map"
+    );
+
+    test_hash_no_intermediate_compare!(
+        Authority,
+        fake.clone(),
+        "http_serde_ext::authority::hash_map_key",
+        "http_serde_ext::authority::hash_set"
     );
 }
 
@@ -348,6 +431,15 @@ fn test_scheme_roundtrip() {
         "http_serde_ext::scheme::btree_map"
     );
 
+    test_hash!(
+        Scheme,
+        Scheme::from_str("https").unwrap(),
+        json!("https"),
+        "https",
+        "http_serde_ext::scheme::hash_map_key",
+        "http_serde_ext::scheme::hash_set"
+    );
+
     let fake: Scheme = Faker.fake();
     test_all_no_intermediate_compare!(
         Scheme,
@@ -360,6 +452,13 @@ fn test_scheme_roundtrip() {
         "http_serde_ext::scheme::linked_list",
         "http_serde_ext::scheme::hash_map",
         "http_serde_ext::scheme::btree_map"
+    );
+
+    test_hash_no_intermediate_compare!(
+        Scheme,
+        fake.clone(),
+        "http_serde_ext::scheme::hash_map_key",
+        "http_serde_ext::scheme::hash_set"
     );
 }
 
@@ -380,6 +479,15 @@ fn test_path_and_query_roundtrip() {
         "http_serde_ext::path_and_query::btree_map"
     );
 
+    test_hash!(
+        PathAndQuery,
+        PathAndQuery::from_static("/"),
+        json!("/"),
+        "/",
+        "http_serde_ext::path_and_query::hash_map_key",
+        "http_serde_ext::path_and_query::hash_set"
+    );
+
     let fake: PathAndQuery = Faker.fake();
     test_all_no_intermediate_compare!(
         PathAndQuery,
@@ -392,6 +500,13 @@ fn test_path_and_query_roundtrip() {
         "http_serde_ext::path_and_query::linked_list",
         "http_serde_ext::path_and_query::hash_map",
         "http_serde_ext::path_and_query::btree_map"
+    );
+
+    test_hash_no_intermediate_compare!(
+        PathAndQuery,
+        fake.clone(),
+        "http_serde_ext::path_and_query::hash_map_key",
+        "http_serde_ext::path_and_query::hash_set"
     );
 }
 
@@ -501,6 +616,15 @@ fn test_header_name_roundtrip() {
         "http_serde_ext::header_name::btree_map"
     );
 
+    test_hash!(
+        HeaderName,
+        HeaderName::from_static("foo"),
+        json!("foo"),
+        "foo",
+        "http_serde_ext::header_name::hash_map_key",
+        "http_serde_ext::header_name::hash_set"
+    );
+
     let fake: HeaderName = Faker.fake();
     test_all_no_intermediate_compare!(
         HeaderName,
@@ -513,6 +637,13 @@ fn test_header_name_roundtrip() {
         "http_serde_ext::header_name::linked_list",
         "http_serde_ext::header_name::hash_map",
         "http_serde_ext::header_name::btree_map"
+    );
+
+    test_hash_no_intermediate_compare!(
+        HeaderName,
+        fake.clone(),
+        "http_serde_ext::header_name::hash_map_key",
+        "http_serde_ext::header_name::hash_set"
     );
 }
 
@@ -533,6 +664,24 @@ fn test_header_value_roundtrip() {
         "http_serde_ext::header_value::btree_map"
     );
 
+    test_hash!(
+        HeaderValue,
+        HeaderValue::from_static("foo"),
+        json!("foo"),
+        "foo",
+        "http_serde_ext::header_value::hash_map_key",
+        "http_serde_ext::header_value::hash_set"
+    );
+
+    test_ord!(
+        HeaderValue,
+        HeaderValue::from_static("foo"),
+        json!("foo"),
+        "foo",
+        "http_serde_ext::header_value::btree_map_key",
+        "http_serde_ext::header_value::btree_set"
+    );
+
     let fake: HeaderValue = Faker.fake();
     test_all_no_intermediate_compare!(
         HeaderValue,
@@ -545,6 +694,20 @@ fn test_header_value_roundtrip() {
         "http_serde_ext::header_value::linked_list",
         "http_serde_ext::header_value::hash_map",
         "http_serde_ext::header_value::btree_map"
+    );
+
+    test_hash_no_intermediate_compare!(
+        HeaderValue,
+        fake.clone(),
+        "http_serde_ext::header_value::hash_map_key",
+        "http_serde_ext::header_value::hash_set"
+    );
+
+    test_ord_no_intermediate_compare!(
+        HeaderValue,
+        fake.clone(),
+        "http_serde_ext::header_value::btree_map_key",
+        "http_serde_ext::header_value::btree_set"
     );
 }
 
@@ -565,6 +728,15 @@ fn test_method_roundtrip() {
         "http_serde_ext::method::btree_map"
     );
 
+    test_hash!(
+        Method,
+        Method::default(),
+        json!("GET"),
+        "GET",
+        "http_serde_ext::method::hash_map_key",
+        "http_serde_ext::method::hash_set"
+    );
+
     let fake: Method = Faker.fake();
     test_all_no_intermediate_compare!(
         Method,
@@ -577,6 +749,13 @@ fn test_method_roundtrip() {
         "http_serde_ext::method::linked_list",
         "http_serde_ext::method::hash_map",
         "http_serde_ext::method::btree_map"
+    );
+
+    test_hash_no_intermediate_compare!(
+        Method,
+        fake.clone(),
+        "http_serde_ext::method::hash_map_key",
+        "http_serde_ext::method::hash_set"
     );
 }
 
@@ -645,7 +824,7 @@ macro_rules! no_intermediate_compare_roundtrip_res_req {
 }
 
 macro_rules! test_all_res_req {
-        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $equate:ident, $path:expr, $option:expr, $result:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+        ($ty:ty, $val:expr, $json:expr, $yaml:expr, $equate:ident, $path:literal, $option:literal, $result:literal, $vec:literal, $vec_deque:literal, $linked_list:literal, $hash_map:literal, $btree_map:literal) => {{
             roundtrip_res_req!($ty, $val, |a, b| $equate(a, b), $path, json!($json), format!("{}\n", $yaml));
 
             roundtrip_res_req!(
@@ -707,7 +886,7 @@ macro_rules! test_all_res_req {
     }
 
 macro_rules! test_all_no_intermediate_compare_res_req {
-        ($ty:ty, $val:expr, $equate:ident, $path:expr, $option:expr, $result:expr, $vec:expr, $vec_deque:expr, $linked_list:expr, $hash_map:expr, $btree_map:expr) => {{
+        ($ty:ty, $val:expr, $equate:ident, $path:literal, $option:literal, $result:literal, $vec:literal, $vec_deque:literal, $linked_list:literal, $hash_map:literal, $btree_map:literal) => {{
             no_intermediate_compare_roundtrip_res_req!($ty, $val, |a, b| $equate(a, b), $path);
 
             no_intermediate_compare_roundtrip_res_req!(
@@ -931,6 +1110,20 @@ fn test_status_code_roundtrip() {
         "http_serde_ext::status_code::hash_map",
         "http_serde_ext::status_code::btree_map"
     );
+
+    test_hash_no_intermediate_compare!(
+        StatusCode,
+        fake,
+        "http_serde_ext::status_code::hash_map_key",
+        "http_serde_ext::status_code::hash_set"
+    );
+
+    test_ord_no_intermediate_compare!(
+        StatusCode,
+        fake,
+        "http_serde_ext::status_code::btree_map_key",
+        "http_serde_ext::status_code::btree_set"
+    );
 }
 
 #[test]
@@ -965,6 +1158,15 @@ fn test_uri_roundtrip() {
         "http_serde_ext::uri::btree_map"
     );
 
+    test_hash!(
+        Uri,
+        Uri::try_from("https://example.com").unwrap(),
+        json!("https://example.com/"),
+        "https://example.com/",
+        "http_serde_ext::uri::hash_map_key",
+        "http_serde_ext::uri::hash_set"
+    );
+
     let fake: Uri = Faker.fake();
     test_all_no_intermediate_compare!(
         Uri,
@@ -977,6 +1179,13 @@ fn test_uri_roundtrip() {
         "http_serde_ext::uri::linked_list",
         "http_serde_ext::uri::hash_map",
         "http_serde_ext::uri::btree_map"
+    );
+
+    test_hash_no_intermediate_compare!(
+        Uri,
+        fake.clone(),
+        "http_serde_ext::uri::hash_map_key",
+        "http_serde_ext::uri::hash_set"
     );
 }
 
@@ -997,6 +1206,24 @@ fn test_version_roundtrip() {
         "http_serde_ext::version::btree_map"
     );
 
+    test_hash!(
+        Version,
+        Version::default(),
+        json!("HTTP/1.1"),
+        "HTTP/1.1",
+        "http_serde_ext::version::hash_map_key",
+        "http_serde_ext::version::hash_set"
+    );
+
+    test_ord!(
+        Version,
+        Version::default(),
+        json!("HTTP/1.1"),
+        "HTTP/1.1",
+        "http_serde_ext::version::btree_map_key",
+        "http_serde_ext::version::btree_set"
+    );
+
     let fake: Version = Faker.fake();
     test_all_no_intermediate_compare!(
         Version,
@@ -1010,10 +1237,24 @@ fn test_version_roundtrip() {
         "http_serde_ext::version::hash_map",
         "http_serde_ext::version::btree_map"
     );
+
+    test_hash_no_intermediate_compare!(
+        Version,
+        fake,
+        "http_serde_ext::version::hash_map_key",
+        "http_serde_ext::version::hash_set"
+    );
+
+    test_ord_no_intermediate_compare!(
+        Version,
+        fake,
+        "http_serde_ext::version::btree_map_key",
+        "http_serde_ext::version::btree_set"
+    );
 }
 
 macro_rules! invalid_deserialize {
-    ($ty:ty, $json:expr, $path:expr, $msg:tt) => {{
+    ($ty:ty, $json:expr, $path:literal, $msg:tt) => {{
         #[derive(Deserialize)]
         struct Wrapper(#[serde(with = $path)] $ty);
 
@@ -1024,7 +1265,7 @@ macro_rules! invalid_deserialize {
 }
 
 macro_rules! serde_json_res_req_invalid {
-    ($ty:ty, $path:expr, $msg:expr) => {{
+    ($ty:ty, $path:literal, $msg:expr) => {{
         let mut val = <$ty>::default();
         val.extensions_mut().insert(true);
 
