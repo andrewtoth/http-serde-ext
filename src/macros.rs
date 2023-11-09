@@ -304,6 +304,69 @@ macro_rules! serde_map {
     };
 }
 
+macro_rules! serde_map_key {
+    ($map:ty, $($bounds:path,)+, $val:ident, $ty:ty, $create:expr, $insert:ident, $name:ident$(, $generic:ident)?) => {
+        pub mod $name {
+
+            #[derive(serde::Deserialize)]
+            struct TempDe$(<$generic: for<'a> serde::Deserialize<'a>>)?(#[serde(with = "super")] $ty);
+
+            #[derive(serde::Serialize)]
+            struct TempSer<'a$(, $generic: serde::Serialize)?>(#[serde(with = "super")] &'a $ty);
+
+            #[allow(clippy::mutable_key_type)]
+            pub fn serialize<$($generic: serde::Serialize, )?$val: serde::Serialize, S: serde::Serializer>(
+                val: &$map,
+                ser: S,
+            ) -> Result<S::Ok, S::Error> {
+
+                let mut map = ser.serialize_map(Some(val.len()))?;
+                for (k, val) in val {
+                    serde::ser::SerializeMap::serialize_entry(&mut map, &TempSer(k), val)?;
+                }
+                serde::ser::SerializeMap::end(map)
+            }
+
+            struct Visitor<$val: for<'a> serde::Deserialize<'a>$(, $generic: for<'a> serde::Deserialize<'a>)?> {
+                ph_k: std::marker::PhantomData<$val>,
+                $(ph: std::marker::PhantomData<$generic>,)?
+            }
+
+            impl<'de$(, $generic: for<'a> serde::Deserialize<'a>)?, $val: for<'a> serde::Deserialize<'a>$( + $bounds)+> serde::de::Visitor<'de> for Visitor<$val, $($generic)?> {
+                type Value = $map;
+
+                fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    formatter.write_str("option")
+                }
+
+                fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+                where
+                    M: serde::de::MapAccess<'de>,
+                {
+
+                    #[allow(clippy::redundant_closure_call, clippy::mutable_key_type)]
+                    let mut ret = $create(map.size_hint().unwrap_or_default());
+                    while let Some((k, val)) = map.next_entry::<TempDe$(<$generic>)?, $val>()? {
+                        ret.$insert(k.0, val);
+                    }
+                    Ok(ret)
+                }
+            }
+
+            pub fn deserialize<'de, D$(, $generic)?, $val: for<'a> serde::Deserialize<'a>$( + $bounds)+>(de: D) -> Result<$map, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+                $($generic: for<'a> serde::Deserialize<'a>,)?
+            {
+                de.deserialize_map(Visitor$(::<$val, $generic>)? {
+                    ph_k: std::marker::PhantomData::<$val>,
+                    $(ph: std::marker::PhantomData::<$generic>,)?
+                })
+            }
+        }
+    };
+}
+
 macro_rules! derive_extension_types {
     ($ty:ty$(, $generic:ident)?) => {
         serde_option!($ty$(, $generic)?);
@@ -341,6 +404,50 @@ macro_rules! derive_extension_types {
             insert,
             btree_map$(, $generic)?
         );
+    }
+}
+
+macro_rules! derive_hash_types {
+    ($ty:ty) => {
+        serde_seq!(
+            std::collections::HashSet<$ty>,
+            $ty,
+            std::collections::HashSet::with_capacity,
+            insert,
+            hash_set
+        );
+
+        serde_map_key!(
+            std::collections::HashMap<$ty, V>,
+            std::cmp::Eq, std::hash::Hash,,
+            V,
+            $ty,
+            std::collections::HashMap::with_capacity,
+            insert,
+            hash_map_key
+        );
+    }
+}
+
+macro_rules! derive_ord_types {
+    ($ty:ty) => {
+        serde_seq!(
+            std::collections::BTreeSet<$ty>,
+            $ty,
+            |_| std::collections::BTreeSet::new(),
+            insert,
+            btree_set
+        );
+        serde_map_key!(
+            std::collections::BTreeMap<$ty, V>,
+            std::cmp::Ord,,
+            V,
+            $ty,
+            |_| std::collections::BTreeMap::new(),
+            insert,
+            btree_map_key
+        );
+
     }
 }
 

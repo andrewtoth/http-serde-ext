@@ -34,17 +34,5 @@ where
 }
 
 derive_extension_types!(super::Type);
-serde_seq!(
-    std::collections::HashSet<super::Type>,
-    super::Type,
-    std::collections::HashSet::with_capacity,
-    insert,
-    hash_set
-);
-serde_seq!(
-    std::collections::BTreeSet<super::Type>,
-    super::Type,
-    |_| std::collections::BTreeSet::new(),
-    insert,
-    btree_set
-);
+derive_hash_types!(super::Type);
+derive_ord_types!(super::Type);

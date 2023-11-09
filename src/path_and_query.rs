@@ -12,10 +12,4 @@ create_visitor!(
 deserialize_string!(Visitor, Type);
 
 derive_extension_types!(super::Type);
-serde_seq!(
-    std::collections::HashSet<super::Type>,
-    super::Type,
-    std::collections::HashSet::with_capacity,
-    insert,
-    hash_set
-);
+derive_hash_types!(super::Type);

@@ -6,10 +6,4 @@ create_visitor!(Visitor, Type, EXPECT_MESSAGE, (visit_str, &str));
 deserialize_str!(Visitor, Type);
 
 derive_extension_types!(super::Type);
-serde_seq!(
-    std::collections::HashSet<super::Type>,
-    super::Type,
-    std::collections::HashSet::with_capacity,
-    insert,
-    hash_set
-);
+derive_hash_types!(super::Type);
