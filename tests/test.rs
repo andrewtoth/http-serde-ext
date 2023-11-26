@@ -976,19 +976,10 @@ fn test_response_roundtrip() {
     );
 
     let response: Response<String> = Faker.fake();
-    let status = response.status();
-    let headers = response.headers().clone();
-    let version = response.version();
-    let body = response.body();
 
-    let response = || {
-        let mut builder = Response::builder().status(status).version(version);
-        std::mem::swap(builder.headers_mut().unwrap(), &mut headers.clone());
-        builder.body(body.clone()).unwrap()
-    };
     test_all_no_intermediate_compare_res_req!(
         Response<String>,
-        response(),
+        response.clone(),
         equate,
         "http_serde_ext::response",
         "http_serde_ext::response::option",
@@ -1038,21 +1029,10 @@ fn test_request_roundtrip() {
     );
 
     let request: Request<String> = Faker.fake();
-    let method = request.method();
-    let uri = request.uri();
-    let headers = request.headers().clone();
-    let version = request.version();
-    let body = request.body();
-
-    let request = || {
-        let mut builder = Request::builder().method(method).uri(uri).version(version);
-        std::mem::swap(builder.headers_mut().unwrap(), &mut headers.clone());
-        builder.body(body.clone()).unwrap()
-    };
 
     test_all_no_intermediate_compare_res_req!(
         Request<String>,
-        request(),
+        request.clone(),
         equate,
         "http_serde_ext::request",
         "http_serde_ext::request::option",
