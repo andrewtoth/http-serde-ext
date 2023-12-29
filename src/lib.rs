@@ -89,6 +89,9 @@ mod macros;
 struct BorrowedNameWrapper<'a>(#[serde(with = "crate::header_name")] &'a http::HeaderName);
 
 #[derive(serde::Deserialize)]
+struct NameWrapper(#[serde(with = "crate::header_name")] http::HeaderName);
+
+#[derive(serde::Deserialize)]
 #[serde(untagged)]
 enum Either<T> {
     One(T),

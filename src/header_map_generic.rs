@@ -1,13 +1,13 @@
 use std::{fmt, iter, marker::PhantomData};
 
-use http::{header::GetAll, HeaderName};
+use http::header::GetAll;
 use serde::{
     de,
     ser::{self, SerializeSeq},
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-use super::{BorrowedNameWrapper, Either};
+use super::{BorrowedNameWrapper, Either, NameWrapper};
 
 type Type<T> = http::HeaderMap<T>;
 const EXPECT_MESSAGE: &str = "a header map";
@@ -49,9 +49,6 @@ where
             .map(|k| (BorrowedNameWrapper(k), GetAllWrapper(headers.get_all(k)))),
     )
 }
-
-#[derive(Deserialize)]
-struct NameWrapper(#[serde(with = "crate::header_name")] HeaderName);
 
 struct Visitor<T>
 where

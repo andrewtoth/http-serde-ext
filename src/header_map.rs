@@ -1,13 +1,13 @@
 use std::{fmt, iter};
 
-use http::{header::GetAll, HeaderName, HeaderValue};
+use http::{header::GetAll, HeaderValue};
 use serde::{
     de,
     ser::{self, SerializeSeq},
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-use crate::{header_value, BorrowedNameWrapper, Either};
+use crate::{header_value, BorrowedNameWrapper, Either, NameWrapper};
 
 type Type = http::HeaderMap;
 const EXPECT_MESSAGE: &str = "a header map";
@@ -51,9 +51,6 @@ where
             .map(|k| (BorrowedNameWrapper(k), GetAllWrapper(headers.get_all(k)))),
     )
 }
-
-#[derive(Deserialize)]
-struct NameWrapper(#[serde(with = "crate::header_name")] HeaderName);
 
 #[derive(Deserialize)]
 struct ValueWrapper(#[serde(with = "crate::header_value")] HeaderValue);
