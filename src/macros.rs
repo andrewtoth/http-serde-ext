@@ -452,7 +452,7 @@ macro_rules! derive_ord_types {
 macro_rules! serialize_str {
     ($ty:ty) => {
         pub fn serialize<S: serde::Serializer>(val: &$ty, ser: S) -> Result<S::Ok, S::Error> {
-            ser.serialize_str(&val.as_str())
+            ser.serialize_str(val.as_str())
         }
     };
 }
