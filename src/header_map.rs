@@ -1,13 +1,16 @@
-use std::{fmt, iter};
+use std::{fmt, iter, vec::IntoIter};
 
-use http::{header::GetAll, HeaderValue};
+use http::{
+    header::{Entry, GetAll},
+    HeaderName, HeaderValue,
+};
 use serde::{
     de,
     ser::{self, SerializeSeq},
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-use crate::{header_value, BorrowedNameWrapper, Either, NameWrapper};
+use super::{header_value, BorrowedNameWrapper, Either, NameWrapper};
 
 type Type = http::HeaderMap;
 const EXPECT_MESSAGE: &str = "a header map";
@@ -55,6 +58,19 @@ where
 #[derive(Deserialize)]
 struct ValueWrapper(#[serde(with = "crate::header_value")] HeaderValue);
 
+#[inline]
+fn insert_header_values(map: &mut Type, key: HeaderName, mut values: IntoIter<ValueWrapper>) {
+    if let Entry::Vacant(e) = map.entry(key) {
+        if let Some(first) = values.next() {
+            let mut e = e.insert_entry(first.0);
+
+            for val in values {
+                e.append(val.0);
+            }
+        }
+    }
+}
+
 struct Visitor {
     is_human_readable: bool,
 }
@@ -78,18 +94,14 @@ impl<'de> de::Visitor<'de> for Visitor {
                     Either::One(val) => {
                         map.insert(key.0, val.0);
                     }
-                    Either::Many(arr) => {
-                        for val in arr {
-                            map.append(&key.0, val.0);
-                        }
+                    Either::Many(values) => {
+                        insert_header_values(&mut map, key.0, values.into_iter());
                     }
                 };
             }
         } else {
-            while let Some((key, arr)) = access.next_entry::<NameWrapper, Vec<ValueWrapper>>()? {
-                for val in arr {
-                    map.append(&key.0, val.0);
-                }
+            while let Some((key, values)) = access.next_entry::<NameWrapper, Vec<ValueWrapper>>()? {
+                insert_header_values(&mut map, key.0, values.into_iter());
             }
         }
         Ok(map)

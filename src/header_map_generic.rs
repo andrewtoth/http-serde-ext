@@ -1,6 +1,9 @@
-use std::{fmt, iter, marker::PhantomData};
+use std::{fmt, iter, marker::PhantomData, vec::IntoIter};
 
-use http::header::GetAll;
+use http::{
+    header::{Entry, GetAll},
+    HeaderName,
+};
 use serde::{
     de,
     ser::{self, SerializeSeq},
@@ -50,6 +53,19 @@ where
     )
 }
 
+#[inline]
+fn insert_header_values<T>(map: &mut Type<T>, key: HeaderName, mut values: IntoIter<T>) {
+    if let Entry::Vacant(e) = map.entry(key) {
+        if let Some(first) = values.next() {
+            let mut e = e.insert_entry(first);
+
+            for val in values {
+                e.append(val);
+            }
+        }
+    }
+}
+
 struct Visitor<T>
 where
     T: for<'a> Deserialize<'a>,
@@ -80,18 +96,14 @@ where
                     Either::One(val) => {
                         map.insert(key.0, val);
                     }
-                    Either::Many(arr) => {
-                        for val in arr {
-                            map.append(&key.0, val);
-                        }
+                    Either::Many(values) => {
+                        insert_header_values(&mut map, key.0, values.into_iter());
                     }
                 };
             }
         } else {
-            while let Some((key, arr)) = access.next_entry::<NameWrapper, Vec<T>>()? {
-                for val in arr {
-                    map.append(&key.0, val);
-                }
+            while let Some((key, values)) = access.next_entry::<NameWrapper, Vec<T>>()? {
+                insert_header_values(&mut map, key.0, values.into_iter());
             }
         }
 
