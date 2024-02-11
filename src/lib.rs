@@ -98,6 +98,33 @@ enum Either<T> {
     Many(Vec<T>),
 }
 
+#[inline]
+fn insert_header_values<'a, M, T>(
+    map: &mut http::HeaderMap<T>,
+    key: http::HeaderName,
+    mut values: impl Iterator<Item = T>,
+) -> Result<(), M::Error>
+where
+    M: serde::de::MapAccess<'a>,
+{
+    if let http::header::Entry::Vacant(e) = map.entry(key) {
+        if let Some(first) = values.next() {
+            let mut e = e.insert_entry(first);
+
+            for val in values {
+                e.append(val);
+            }
+        } else {
+            return Err(serde::de::Error::custom(format!(
+                "no value for header {}",
+                e.key()
+            )));
+        }
+    }
+
+    Ok(())
+}
+
 macro_rules! doc_mod {
     { $ty:ty, $path:ident$(, $generic:ident)? } => {
         #[doc = concat!(" [`Serialize`](serde::Serialize)/[`Deserialize`](serde::Deserialize) for [`http::", stringify!($ty), "`]")]

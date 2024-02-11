@@ -1281,6 +1281,12 @@ fn test_invalid() {
         "http_serde_ext::header_map",
         "invalid type: string \"\", expected a header map"
     );
+    invalid_deserialize!(
+        HeaderMap,
+        json!({"empty_key": []}),
+        "http_serde_ext::header_map",
+        "no value for header empty_key"
+    );
 
     invalid_deserialize!(
         HeaderName,
