@@ -59,7 +59,7 @@ struct MyStruct {
     #[serde(with = "http_serde_ext::response")]
     base: Response<Vec<u8>>,
 
-    #[serde(with = "http_serde_ext::request::option")]
+    #[serde(with = "http_serde_ext::request::option", default)]
     option: Option<Request<String>>,
 
     #[serde(with = "http_serde_ext::method::vec")]
@@ -91,12 +91,20 @@ let serialized = http_serde_ext::uri::serialize(&uri, serde_json::value::Seriali
 let deserialized = http_serde_ext::uri::deserialize(serialized).unwrap();
 assert_eq!(uri, deserialized);
 
-let responses: Vec<http::Response<()>> = vec![http::Response::default()];
+let mut responses: Vec<http::Response<()>> = vec![http::Response::default()];
 let serialized =
     http_serde_ext::response::vec::serialize(&responses, serde_json::value::Serializer)
         .unwrap();
-let deserialized: Vec<http::Response<()>> =
+let mut deserialized: Vec<http::Response<()>> =
     http_serde_ext::response::vec::deserialize(serialized).unwrap();
+
+let original = responses.remove(0).into_parts();
+let deserialized = deserialized.remove(0).into_parts();
+
+assert_eq!(original.0.status, deserialized.0.status);
+assert_eq!(original.0.version, deserialized.0.version);
+assert_eq!(original.0.headers, deserialized.0.headers);
+assert_eq!(original.1, deserialized.1);
 ```
 
 ### Acknowledgements

@@ -42,7 +42,7 @@
 //!    #[serde(with = "http_serde_ext::response")]
 //!    base: Response<Vec<u8>>,
 //!
-//!    #[serde(with = "http_serde_ext::request::option")]
+//!    #[serde(with = "http_serde_ext::request::option", default)]
 //!    option: Option<Request<String>>,
 //!
 //!    #[serde(with = "http_serde_ext::method::vec")]
@@ -144,7 +144,7 @@ macro_rules! doc_mod {
         #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "\")]")]
         #[doc = concat!("    base: ", stringify!($ty), $("<", stringify!($generic), ">",)? ",")]
         ///
-        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::option\")]")]
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::option\", default)]")]
         #[doc = concat!("    option: Option<", stringify!($ty), $("<", stringify!($generic), ">",)? ">,")]
         ///
         #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::result\")]")]
@@ -189,7 +189,7 @@ macro_rules! doc_mod_hash {
         #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "\")]")]
         #[doc = concat!("    base: ", stringify!($ty), ",")]
         ///
-        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::option\")]")]
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::option\", default)]")]
         #[doc = concat!("    option: Option<", stringify!($ty), ">,")]
         ///
         #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::result\")]")]
@@ -240,7 +240,7 @@ macro_rules! doc_mod_ord_and_hash {
         #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "\")]")]
         #[doc = concat!("    base: ", stringify!($ty), ",")]
         ///
-        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::option\")]")]
+        #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::option\", default)]")]
         #[doc = concat!("    option: Option<", stringify!($ty), ">,")]
         ///
         #[doc = concat!("    #[serde(with = \"http_serde_ext::", stringify!($path), "::result\")]")]
